@@ -1,0 +1,27 @@
+{
+  "name": "hyperapp-custom-element",
+  "version": "0.0.1",
+  "description": "Creates Hyperapp-driven WebComponents CustomElements",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isabo/hyperapp-custom-element.git"
+  },
+  "keywords": [
+    "WebComponent",
+    "CustomElement",
+    "Hyperapp"
+  ],
+  "author": "Itzy Sabo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/isabo/hyperapp-custom-element/issues"
+  },
+  "homepage": "https://github.com/isabo/hyperapp-custom-element#readme",
+  "devDependencies": {
+    "prettier": "^2.0.5"
+  }
+}
