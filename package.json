@@ -23,5 +23,8 @@
   "homepage": "https://github.com/isabo/hyperapp-custom-element#readme",
   "devDependencies": {
     "prettier": "^2.0.5"
+  },
+  "peerDependencies": {
+    "hyperapp": "^2.0.8"
   }
 }
