@@ -1,5 +1,4 @@
-import { app } from 'hyperapp';
-import { PatchStateAction } from './util';
+export { define, setOnEventListenerEffect, dispatchEventEffect };
 
 /**
  * Creates a CustomElement that uses the Hyperapp microframework to define its
@@ -23,10 +22,13 @@ import { PatchStateAction } from './util';
  *
  * @param {Object} config
  * @param {string} config.name Hyphenated tag name for the component.
+ * @param {function} config.app Hyperapp's app() function.
  * @param {Object} config.state An object containing the component's default
  *      state.
  * @param {Hyperapp.View} config.view Hyperapp view function that composes the
  *      component's DOM structure.
+ * @param {Hyperapp.Subscriptions} config.subscriptions Hyperapp subscriptions
+ *      function.
  *
  * @param {Object[]} [attributes] Array of attribute objects (optional):
  * @param {string} attributes[].attrName HTML attribute name. Optional.
@@ -48,8 +50,18 @@ import { PatchStateAction } from './util';
  *
  * @param {Object} [methods] Object that maps method names to Hyperapp Actions
  *      that change the state in the required ways. Optional.
+ * @param {boolean} [useShadow] Whether to use Shadow DOM. Default: true.
  */
-export function define({ name, state, view, attributes = [], methods = {} }) {
+function define({
+  name,
+  app,
+  state,
+  view,
+  subscriptions,
+  attributes = [],
+  methods = {},
+  useShadow = true,
+}) {
   /**
    * Create a subclass of HTMLElement.
    */
@@ -63,13 +75,36 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
      */
     _dispatch;
 
+    /**
+     * For non-shadow DOM components, stores the DocumentFragment created in
+     * the costructor so that is can be appended to the DOM by the
+     * connectedCallback.
+     *
+     * @type {DocumentFragment}
+     * @private
+     */
+    _fragment;
+
+    /**
+     * Initialises Hyperapp app.
+     */
     constructor() {
       super();
 
-      // Before creating component's DOM, we need a <span>. This is
-      // because Hyperapp is not exepecting shadow DOM, and crashes.
-      const shadowRoot = this.attachShadow({ mode: 'open' });
-      const span = shadowRoot.appendChild(document.createElement('span'));
+      // One of the challenges here is that Hyperapp initialises and builds the
+      // DOM structure in the same step. However, a CustomElement must not
+      // create child nodes in its constructor (unless it uses Shadow DOM). See
+      // https://html.spec.whatwg.org/#custom-element-conformance
+      // The way around this is to build the DOM in a DocumentFragment, and
+      // connect the fragment when the component later enters the DOM.
+      const root = useShadow
+        ? this.attachShadow({ mode: 'open' })
+        : (this._fragment = document.createDocumentFragment());
+
+      // Before creating component's DOM, we need a trivial node that Hyperapp
+      // can replace, such as <span>. Hyperapp always _replaces_ the node that
+      // it is given to start with.
+      const span = root.appendChild(document.createElement('span'));
 
       // Record the initial state.
       this._state = state;
@@ -79,9 +114,21 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
       app({
         init: state,
         view,
+        subscriptions,
         middleware: this.wrapDispatch.bind(this),
         node: span,
       });
+    }
+
+    /**
+     * Called by the browser when the component enters the DOM. For non-shadow
+     * DOM components, appends the DocumentFragment to the DOM, which was not
+     * allowed in the constructor.
+     */
+    connectedCallback() {
+      if (!useShadow) {
+        this.appendChild(this._fragment);
+      }
     }
 
     /**
@@ -101,7 +148,7 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
      *
      * It is very useful for Actions and Effects dispatched by the component to
      * have a value of `this` that refers to the component. For example, without
-     * this it would be challenging for components to source events to their
+     * this it would be challenging for components to dispatch events to their
      * consumers.
      *
      * In addition, every action can potentially update the state. We want to
@@ -118,14 +165,16 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
         // Also, we need to identify and capture changes of state.
         // 1. Direct invocation, e.g. from an Effect:
         //      dispatch(action, props)
-        // 2. Invocation of an Action tuple returned by an Action:
+        // 2. Invocation with an Action tuple returned by an Action:
         //      dispatch([action, props])
-        // 3. Invocation of a state and optional Effect tuples returned by an
-        //    Action:
+        // 3. Invocation with a state and Effect tuples returned by an Action:
         //      dispatch([state, [effect, props], [effect, props], ...])
+        // 4. Invocation with just a state:
+        //      dispatch(state)
         //
         // In cases 1 and 2, we need to bind the actions.
         // In case 3 we need to capture the new state, and bind all the effects.
+        // In case 4, we just need to capture the state.
 
         let newState;
         if (typeof action === 'function') {
@@ -145,7 +194,7 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
             }
           }
         } else {
-          // Signature 3: it's just a new state (no Effects).
+          // Signature 4: it's just a new state (no Effects).
           newState = action;
         }
 
@@ -197,7 +246,7 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
     setProperty(propName, value) {
       // If an action was supplied for setting this property, use it.
       const attr = this.getAttrConfigByPropertyName(propName);
-      const action = attr.setter || PatchStateAction;
+      const action = attr.setter || PatchState;
 
       // Hyperapp state is updated only by invoking an action:
       this.dispatchAction(action, { [propName]: value });
@@ -282,11 +331,9 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
     attributeChangedCallback(attrName, oldVal, newVal) {
       if (oldVal === newVal) return;
 
-      console.log('attributeChangedCallback', attrName, oldVal, newVal);
-
       // If an action was supplied for this attribute, use it.
       const attr = this.getAttrConfigByAttributeName(attrName);
-      const action = attr.setter || PatchStateAction;
+      const action = attr.setter || PatchState;
 
       // Prefer propName to attrName when sending to action.
       const propName = attr?.propName || attr.attrName;
@@ -310,6 +357,22 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
         return !!item.attrName ? observed.concat(item.attrName) : observed;
       }, []);
     }
+  }
+
+  /**
+   * Updates a state object with provided changes.
+   * This is a default that is used if a ChangeAttribute action was not
+   * provided.
+   *
+   * @param {Object} state The current state of the Hyperapp app instance.
+   * @param {Object} props The property/value pair(s) to overwrite.
+   * @returns {Object} A new state object.
+   */
+  function PatchState(state, props) {
+    return {
+      ...state,
+      ...props,
+    };
   }
 
   /**
@@ -349,4 +412,47 @@ export function define({ name, state, view, attributes = [], methods = {} }) {
   })();
 
   customElements.define(name, CustomElement);
+}
+
+/**
+ * Hyperapp Effect for handling changes to an HTML on<event> attribute.
+ * If the attribute value was changed, registers the new value (must be a
+ * function) as an event listener, and de-registers the old value's listener.
+ * If the attribute was removed, de-registers the listener.
+ *
+ * @param {function} _ The dispatch function passed by Hyperapp. Not used here.
+ * @param {Object} props
+ * @param {string} props.eventType The application-defined event type.
+ * @param {function|undefined|null} props.oldVal The previous value of the
+ *    on<event> attribute
+ * @param {function|null} props.newVal The new value of the on<event> attribute.
+ */
+function setOnEventListenerEffect(_, { eventType, oldVal, newVal }) {
+  // Make the function an event listener.
+  // But first, remove the current one if there is one.
+  if (oldVal !== null) {
+    this.removeEventListener(eventType, oldVal);
+  }
+  if (newVal !== null) {
+    this.addEventListener(eventType, newVal);
+  }
+}
+
+/**
+ * Hyperapp Effect that dispatches a CustomEvent for the consuming app to
+ * consume.
+ *
+ * @param {function} _ The dispatch function passed by Hyperapp. Not used here.
+ * @param {Object} props
+ * @param {string} props.eventType The name of the event. Corresponds to typeArg
+ *    in the CustomEvent constructor.
+ * @param {CustomEventInit} props.eventInit Settings for the custom event. Corr-
+ *    esponds to customEventInit in the CustomEvent constructor.
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent
+ */
+function dispatchEventEffect(_, { eventType, eventInit }) {
+  const ev = new CustomEvent(eventType, eventInit);
+  const cancel = !this.dispatchEvent(ev);
+  // TODO: figure out how to supply useful functionality for cancelling default
+  // actions.
 }
