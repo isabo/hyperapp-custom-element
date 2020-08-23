@@ -1,4 +1,4 @@
-# Build WebComponents / CustomElements using Hyperapp
+# Build CustomElements using Hyperapp
 
 This library makes it easy to create a WebComponents-compliant CustomElement
 that uses the Hyperapp microframework to define its behaviour. Such components
@@ -9,12 +9,12 @@ The resulting CustomElement can be consumed by any HTML/Javascript project -- it
 ## Hyperapp
 
 CustomElements built with this library are mini Hyperapp apps that compose their
-DOM structures using Hyperapp view functions. Their behaviour is governed by
+DOM structures using Hyperapp View functions. Their behaviour is governed by
 Hyperapp Action, Effect and Subscription functions.
 
 Unlike regular Hyperapp apps, there are three additional types of external
-events to which a CustomElement may need to react. The app that consumes the
-component may:
+events to which a CustomElement may need to react. An app that consumes a
+CustomElement component may:
 
 1. set HTML attributes in the component's HTML tag;
 2. set values of JavasScript properties that the component exposes;
@@ -23,7 +23,7 @@ component may:
 In addition, some or all of the Javascript properties and HTML attributes need
 to be kept in sync with each other.
 
-**This library provides functionality to configure and handle all of these behaviours.**
+**This library provides functionality to configure and handle all of these behaviours automatically.**
 
 ## Installation
 
@@ -46,6 +46,7 @@ import { app } from 'hyperapp';
 import { define } from 'hyperapp-custom-element';
 
 define({
+  // The tag name of the CustomElement.
   name: 'my-counter',
 
   // The library uses your imported version of Hyperapp.
