@@ -50,7 +50,7 @@ export { define, setOnEventListenerEffect, dispatchEventEffect };
  *
  * @param {Object} [methods] Object that maps method names to Hyperapp Actions
  *      that change the state in the required ways. Optional.
- * @param {boolean} [useShadow] Whether to use Shadow DOM. Default: true.
+ * @param {boolean} [useShadowDOM] Whether to use Shadow DOM. Default: true.
  */
 function define({
   name,
@@ -60,7 +60,7 @@ function define({
   subscriptions,
   attributes = [],
   methods = {},
-  useShadow = true,
+  useShadowDOM = true,
 }) {
   /**
    * Create a subclass of HTMLElement.
@@ -97,7 +97,7 @@ function define({
       // https://html.spec.whatwg.org/#custom-element-conformance
       // The way around this is to build the DOM in a DocumentFragment, and
       // connect the fragment when the component later enters the DOM.
-      const root = useShadow
+      const root = useShadowDOM
         ? this.attachShadow({ mode: 'open' })
         : (this._fragment = document.createDocumentFragment());
 
@@ -126,7 +126,7 @@ function define({
      * allowed in the constructor.
      */
     connectedCallback() {
-      if (!useShadow) {
+      if (!useShadowDOM) {
         this.appendChild(this._fragment);
       }
     }
