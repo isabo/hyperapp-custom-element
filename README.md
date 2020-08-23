@@ -4,9 +4,7 @@ This library makes it easy to create a WebComponents-compliant CustomElement
 that uses the Hyperapp microframework to define its behaviour. Such components
 are extremely lightweight.
 
-The resulting CustomElement is a standard Web Component that can be consumed by
-any HTML/Javascript project -- it does not require Hyperapp coding in order to
-use it.
+The resulting CustomElement can be consumed by any HTML/Javascript project -- it does not require Hyperapp coding in order to use it.
 
 ## Hyperapp
 
@@ -25,8 +23,7 @@ component may:
 In addition, some or all of the Javascript properties and HTML attributes need
 to be kept in sync with each other.
 
-This library provides functionality to configure and handle all of these
-behaviours.
+**This library provides functionality to configure and handle all of these behaviours.**
 
 ## Installation
 
@@ -50,14 +47,24 @@ import { define } from 'hyperapp-custom-element';
 
 define({
   name: 'my-counter',
-  app: app, // The library uses your imported version of Hyperapp.
-  state: { count: 0 }, // The initial state of the component.
+
+  // The library uses your imported version of Hyperapp.
+  app: app,
+
+  // The initial state of the component.
+  state: { count: 0 },
+
+  // The Hyperapp View function that builds the component's DOM.
   view: (state) => {
     h('p', {}, [text('The current count is '), text(state.count)]);
   },
-  subscriptions: [
-    /* An array of Hyperapp subscriptions (optional) */
-  ],
+
+  // An array of Hyperapp subscriptions (optional).
+  subscriptions: [],
+
+  // An array of Javascript properties and HTML attributes (they often come in
+  // pairs) that affect the component's internal state, and optional Actions
+  // for specifying the nature of the interaction.
   attributes: [
     {
       // Name of HTML attribute.
