@@ -73,7 +73,7 @@ function define({
      * @type {Hyperapp.Dispatch}
      * @private
      */
-    _dispatch;
+    //_dispatch;
 
     /**
      * For Light DOM components, stores the DocumentFragment created in the
@@ -83,7 +83,7 @@ function define({
      * @type {DocumentFragment}
      * @private
      */
-    _fragment;
+    //_fragment;
 
     /**
      * Initialises Hyperapp app.
