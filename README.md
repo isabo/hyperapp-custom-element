@@ -64,16 +64,17 @@ define({
   subscriptions: [],
 
   // An array of Javascript properties and HTML attributes (they often come in
-  // pairs) that affect the component's internal state, and optional Actions
-  // for specifying the nature of the interaction.
-  attributes: [
+  // pairs) that can be used by a consuming app to configure the component.
+  exposedConfig: [
     {
       // Name of HTML attribute.
       // Specify attrName or propName or both.
+      // If both are specified, their values will be synchronised.
       attrName: 'increment-size',
 
       // Name of JS property.
       // Specify attrName or propName or both.
+      // If both are specified, their values will be synchronised.
       propName: 'incrementSize',
 
       // Action function that will incorporate the new property or attribute
@@ -84,14 +85,14 @@ define({
 
       // A function that receives the state and returns the property value
       // (optional). If not specified, the value will be obtained thus:
-      // `value = state[propName||attrName`
+      // `value = state[propName||attrName]`
       getter: getIncrementSize,
     },
   ],
 
   // Methods to expose to the consuming app, and the corresponding Actions that
   // will be invoked when the methods are called.
-  methods: {
+  exposedMethods: {
     increment: IncrementAction,
   },
 

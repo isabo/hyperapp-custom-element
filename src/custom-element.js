@@ -30,10 +30,10 @@ export { define, setOnEventListenerEffect, dispatchEventEffect };
  * @param {Hyperapp.Subscriptions} config.subscriptions Hyperapp subscriptions
  *      function.
  *
- * @param {Object[]} [attributes] Array of attribute objects (optional):
- * @param {string} attributes[].attrName HTML attribute name. Optional.
- * @param {string} attributes[].propName Javascript Element property name.
- * @param {Hyperapp.Action} attributes[].setter Hyperapp Action function that
+ * @param {Object[]} [exposedConfig] Array of config objects (optional):
+ * @param {string} exposedConfig[].attrName HTML attribute name. Optional.
+ * @param {string} exposedConfig[].propName Javascript Element property name.
+ * @param {Hyperapp.Action} exposedConfig[].setter Hyperapp Action function that
  *      controls whether/how the state will change when the HTML attribute value
  *      or the CustomElement property value is changed by the consuming app.
  *      If the HTML attribute does not need a value, e.g. `<tag-name disabled>`,
@@ -42,14 +42,14 @@ export { define, setOnEventListenerEffect, dispatchEventEffect };
  *      the tag, the setter action will be called with `{[attrName]: null}`.
  *      This means that any value except `null` indicates the presence of the
  *      flag. Optional.
- * @param {function(Object):*} attributes[].getter A function that takes the
+ * @param {function(Object):*} exposedConfig[].getter A function that takes the
  *      state as an argument and returns the value of the attribute or property.
  *      This allows the exposed properties to be named differently from internal
  *      properties, or to be based on a combination of multiple internal
  *      properties. Optional.
  *
- * @param {Object} [methods] Object that maps method names to Hyperapp Actions
- *      that change the state in the required ways. Optional.
+ * @param {Object} [exposedMethods] Object that maps method names to Hyperapp
+ *      Actions that change the state in the required ways. Optional.
  * @param {boolean} [useShadowDOM] Whether to use Shadow DOM. Default: true.
  */
 function define({
@@ -58,8 +58,8 @@ function define({
   state,
   view,
   subscriptions,
-  attributes = [],
-  methods = {},
+  exposedConfig = [],
+  exposedMethods = {},
   useShadowDOM = true,
 }) {
   /**
@@ -76,8 +76,8 @@ function define({
     _dispatch;
 
     /**
-     * For non-shadow DOM components, stores the DocumentFragment created in
-     * the costructor so that is can be appended to the DOM by the
+     * For Light DOM components, stores the DocumentFragment created in the
+     * constructor so that is can be appended to the DOM by the
      * connectedCallback.
      *
      * @type {DocumentFragment}
@@ -121,9 +121,9 @@ function define({
     }
 
     /**
-     * Called by the browser when the component enters the DOM. For non-shadow
-     * DOM components, appends the DocumentFragment to the DOM, which was not
-     * allowed in the constructor.
+     * Called by the host (usually a browser) when the component enters the DOM.
+     * For Light DOM components, appends the DocumentFragment to the DOM, which
+     * is not allowed in the constructor.
      */
     connectedCallback() {
       if (!useShadowDOM) {
@@ -132,7 +132,7 @@ function define({
     }
 
     /**
-     * Cleans up when called by the browser.
+     * Cleans up when called by the host (usually a browser).
      */
     disconnectedCallback() {
       // TODO: use the value returned from app, which is a kill function.
@@ -229,7 +229,7 @@ function define({
      */
     getProperty(propName) {
       // If a getter was supplied for this property, use it.
-      const attr = this.getAttrConfigByPropertyName(propName);
+      const attr = this.getExposedConfigByPropertyName(propName);
       const getter = attr?.getter || ((state) => state?.[propName]);
 
       return getter(this._state);
@@ -245,7 +245,7 @@ function define({
      */
     setProperty(propName, value) {
       // If an action was supplied for setting this property, use it.
-      const attr = this.getAttrConfigByPropertyName(propName);
+      const attr = this.getExposedConfigByPropertyName(propName);
       const action = attr.setter || PatchState;
 
       // Hyperapp state is updated only by invoking an action:
@@ -258,28 +258,28 @@ function define({
     }
 
     /**
-     * Retrieves the attributes array entry that contains a specific property
+     * Retrieves the exposedConfig array entry that contains a specific property
      * name.
      *
      * @param {string} propName
      * @returns {Object}
      * @private
      */
-    getAttrConfigByPropertyName(propName) {
+    getExposedConfigByPropertyName(propName) {
       // TODO: optimise this by preparing a map of property names to configs.
-      return attributes.find((item, index) => item.propName === propName);
+      return exposedConfig.find((item, index) => item.propName === propName);
     }
 
     /**
-     * Retrieves the attributes array entry that contains a specific attribute.
-     * name.
+     * Retrieves the exposedConfig array entry that contains a specific
+     * attribute name.
      *
      * @param {string} propName
      * @returns {Object}
      * @private
      */
-    getAttrConfigByAttributeName(attrName) {
-      return attributes.find(
+    getExposedConfigByAttributeName(attrName) {
+      return exposedConfig.find(
         (item, index) => item.attrName?.toLowerCase() === attrName.toLowerCase()
       );
     }
@@ -322,7 +322,7 @@ function define({
 
     /**
      * Updates the Hyperapp state to reflect changes in any observed attribute.
-     * Called by the host.
+     * Called by the host (usually a browser).
      *
      * @param {string} attrName
      * @param {string|number|undefined} oldVal
@@ -332,7 +332,7 @@ function define({
       if (oldVal === newVal) return;
 
       // If an action was supplied for this attribute, use it.
-      const attr = this.getAttrConfigByAttributeName(attrName);
+      const attr = this.getExposedConfigByAttributeName(attrName);
       const action = attr.setter || PatchState;
 
       // Prefer propName to attrName when sending to action.
@@ -346,14 +346,14 @@ function define({
      * Implements the `observedAttributes` method of CustomElement.
      *
      * The CustomElement's observed attributes are those items in the
-     * `attributes` array that have a value specified for their `attrName`
-     * property. The browser calls `attributeChangedCallback` whenever something
-     * tries to change one of these HTML attributes.
+     * `exposedConfig` array that have a value specified for their `attrName`
+     * property. The host (usually a browser) calls `attributeChangedCallback`
+     * whenever something tries to change one of these HTML attributes.
      *
      * @returns {string[]} Array of attribute names.
      */
     static get observedAttributes() {
-      return attributes.reduce(function (observed, item) {
+      return exposedConfig.reduce(function (observed, item) {
         return !!item.attrName ? observed.concat(item.attrName) : observed;
       }, []);
     }
@@ -381,7 +381,7 @@ function define({
    */
   (function addProperties() {
     // TODO: use Object.defineProperties to do them all at once.
-    attributes.forEach((item) => {
+    exposedConfig.forEach((item) => {
       const name = item.propName;
       if (name !== undefined) {
         const propAttribs = {
@@ -404,9 +404,9 @@ function define({
    * definition.
    */
   (function addMethods() {
-    for (const name in methods) {
+    for (const name in exposedMethods) {
       CustomElement.prototype[name] = function () {
-        this.dispatchAction(methods[name]);
+        this.dispatchAction(exposedMethods[name]);
       };
     }
   })();
