@@ -3,6 +3,8 @@
   "version": "0.0.1",
   "description": "Creates Hyperapp-driven WebComponents CustomElements",
   "type": "module",
+  "main": "./src/custom-element.js",
+  "module": "./src/custom-element.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
   },
