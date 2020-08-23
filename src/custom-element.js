@@ -415,8 +415,9 @@ function define({
 }
 
 /**
- * Hyperapp Effect for handling changes to an HTML on<event> attribute.
- * If the attribute value was changed, registers the new value (must be a
+ * Hyperapp Effect for handling changes to a component's on<event> HTML
+ * attribute.
+ * If the attribute value is being changed, registers the new value (must be a
  * function) as an event listener, and de-registers the old value's listener.
  * If the attribute was removed, de-registers the listener.
  *
