@@ -63,6 +63,24 @@ function define({
   useShadowDOM = true,
 }) {
   /**
+   * Make it easy to look up exposed properties and attributes by generating
+   * corresponding maps.
+   */
+  const [exposedProps, exposedAttrs] = (function generateMaps() {
+    const props = new Map();
+    const attrs = new Map();
+    for (const cfg of exposedConfig) {
+      if (cfg.propName) {
+        props.set(cfg.propName, cfg);
+      }
+      if (cfg.attrName) {
+        attrs.set(cfg.attrName.toLowerCase(), cfg);
+      }
+    }
+    return [props, attrs];
+  })();
+
+  /**
    * Create a subclass of HTMLElement.
    */
   class CustomElement extends HTMLElement {
@@ -229,7 +247,7 @@ function define({
      */
     getProperty(propName) {
       // If a getter was supplied for this property, use it.
-      const attr = this.getExposedConfigByPropertyName(propName);
+      const attr = exposedProps.get(propName);
       const getter = attr?.getter || ((state) => state?.[propName]);
 
       return getter(this._state);
@@ -245,7 +263,7 @@ function define({
      */
     setProperty(propName, value) {
       // If an action was supplied for setting this property, use it.
-      const attr = this.getExposedConfigByPropertyName(propName);
+      const attr = exposedProps.get(propName);
       const action = attr.setter || PatchState;
 
       // Hyperapp state is updated only by invoking an action:
@@ -255,33 +273,6 @@ function define({
       if (attr.attrName) {
         this.syncAttribute(attr.attrName, propName);
       }
-    }
-
-    /**
-     * Retrieves the exposedConfig array entry that contains a specific property
-     * name.
-     *
-     * @param {string} propName
-     * @returns {Object}
-     * @private
-     */
-    getExposedConfigByPropertyName(propName) {
-      // TODO: optimise this by preparing a map of property names to configs.
-      return exposedConfig.find((item, index) => item.propName === propName);
-    }
-
-    /**
-     * Retrieves the exposedConfig array entry that contains a specific
-     * attribute name.
-     *
-     * @param {string} propName
-     * @returns {Object}
-     * @private
-     */
-    getExposedConfigByAttributeName(attrName) {
-      return exposedConfig.find(
-        (item, index) => item.attrName?.toLowerCase() === attrName.toLowerCase()
-      );
     }
 
     /**
@@ -332,7 +323,7 @@ function define({
       if (oldVal === newVal) return;
 
       // If an action was supplied for this attribute, use it.
-      const attr = this.getExposedConfigByAttributeName(attrName);
+      const attr = exposedAttrs.get(attrName.toLowerCase());
       const action = attr.setter || PatchState;
 
       // Prefer propName to attrName when sending to action.
@@ -353,9 +344,7 @@ function define({
      * @returns {string[]} Array of attribute names.
      */
     static get observedAttributes() {
-      return exposedConfig.reduce(function (observed, item) {
-        return !!item.attrName ? observed.concat(item.attrName) : observed;
-      }, []);
+      return exposedAttrs.keys();
     }
   }
 
@@ -381,21 +370,18 @@ function define({
    */
   (function addProperties() {
     // TODO: use Object.defineProperties to do them all at once.
-    exposedConfig.forEach((item) => {
-      const name = item.propName;
-      if (name !== undefined) {
-        const propAttribs = {
-          configurable: false,
-          enumerable: true,
-          get() {
-            return this.getProperty(name);
-          },
-          set(newValue) {
-            this.setProperty(name, newValue);
-          },
-        };
-        Object.defineProperty(CustomElement.prototype, name, propAttribs);
-      }
+    exposedProps.forEach((cfg, name) => {
+      const propAttribs = {
+        configurable: false,
+        enumerable: true,
+        get() {
+          return this.getProperty(name);
+        },
+        set(newValue) {
+          this.setProperty(name, newValue);
+        },
+      };
+      Object.defineProperty(CustomElement.prototype, name, propAttribs);
     });
   })();
 
