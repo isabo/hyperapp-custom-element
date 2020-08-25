@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Counter</title>
+
+    <script type="module" src="./my-counter.js"></script>
+  </head>
+  <body>
+    <h2>Counter</h2>
+    <my-counter increment-size="3" onincrement="writeIncrement()"></my-counter>
+    <div id="events"></div>
+
+    <script>
+      const myCounter = document.querySelector('my-counter');
+      const eventsNode = document.getElementById('events');
+
+      // After 2 seconds hide the increment button, and change the increment size.
+      setTimeout(() => {
+        myCounter.hideButton = true;
+        myCounter.incrementSize = 100;
+      }, 2000);
+
+      // After 3 seconds increment the count programmatically.
+      setTimeout(() => {
+        myCounter.increment();
+      }, 3000);
+
+      // After 4 seconds re-show the increment button.
+      setTimeout(() => {
+        myCounter.hideButton = false;
+      }, 2000);
+
+      function writeIncrement() {
+        eventsNode.innerHTML =
+          'Incremented to ' + myCounter.count + '<br>' + eventsNode.innerHTML;
+      }
+    </script>
+  </body>
+</html>

@@ -4,7 +4,8 @@ This library makes it easy to create a WebComponents-compliant CustomElement
 that uses the Hyperapp microframework to define its behaviour. Such components
 are extremely lightweight.
 
-The resulting CustomElement can be consumed by any HTML/Javascript project -- it does not require Hyperapp coding in order to use it.
+The resulting CustomElement can be consumed by any HTML/Javascript project -- it
+does not require Hyperapp coding in order to use it.
 
 ## Hyperapp
 
@@ -23,7 +24,8 @@ CustomElement component may:
 In addition, some or all of the Javascript properties and HTML attributes need
 to be kept in sync with each other.
 
-**This library provides functionality to configure and handle all of these behaviours automatically.**
+**This library provides functionality to configure and handle all of these
+behaviours automatically.**
 
 ## Installation
 
@@ -42,7 +44,7 @@ import { define } from 'hyperapp-custom-element';
 ## How to Create a CustomElement
 
 ```javascript
-import { app } from 'hyperapp';
+import { app, h, text } from 'hyperapp';
 import { define } from 'hyperapp-custom-element';
 
 define({
@@ -79,7 +81,7 @@ define({
 
       // Action function that will incorporate the new property or attribute
       // value into the component's state (optional). If not specified, the
-      // value will be incorporate into the state thus:
+      // value will be incorporated into the state thus:
       // `newState[propName||attrName] = newValue;`
       setter: SetIncrementSizeAction,
 
@@ -87,6 +89,15 @@ define({
       // (optional). If not specified, the value will be obtained thus:
       // `value = state[propName||attrName]`
       getter: getIncrementSize,
+    },
+    {
+      // This is how to define an on<event> attribute/property. Specify an event
+      // name and do not specify a getter or setter. When one of your effects
+      // dispatches an event with the specified eventType, the corresponding
+      // handler will be invoked.
+      attrName: 'onsomeevent',
+      propName: 'onsomeevent',
+      eventType: 'SomeEvent',
     },
   ],
 
