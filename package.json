@@ -6,7 +6,7 @@
   "main": "./src/custom-element.js",
   "module": "./src/custom-element.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
   "homepage": "https://github.com/isabo/hyperapp-custom-element#readme",
   "devDependencies": {
     "hyperapp": "^2.0.8",
-    "prettier": "^2.0.5",
+    "prettier": "^2.0.5"
   },
   "peerDependencies": {
     "hyperapp": "^2.0.8"
