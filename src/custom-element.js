@@ -385,7 +385,7 @@ function define({
       const name = propName || attrName;
 
       // props will look like this: { onsomeevent: 'some javascript code'}
-      const handler = props[name];
+      let handler = props[name];
 
       // If the inline event handler is not a function, wrap it in one.
       if (handler && typeof handler !== 'function') {
