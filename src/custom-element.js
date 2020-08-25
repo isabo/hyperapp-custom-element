@@ -1,4 +1,4 @@
-export { define, setOnEventListenerEffect, dispatchEventEffect };
+export { define, dispatchEventEffect };
 
 /**
  * Creates a CustomElement that uses the Hyperapp microframework to define its
@@ -47,6 +47,10 @@ export { define, setOnEventListenerEffect, dispatchEventEffect };
  *      This allows the exposed properties to be named differently from internal
  *      properties, or to be based on a combination of multiple internal
  *      properties. Optional.
+ * @param {string} exposedConfig[].eventType When the attribute and/or property
+ *      is an on<event>, this signifies the name of the event that needs to be
+ *      listened to, i.e. that will be dispatched by an Action/Effect when some-
+ *      thing meaningful happens.
  *
  * @param {Object} [exposedMethods] Object that maps method names to Hyperapp
  *      Actions that change the state in the required ways. Optional.
@@ -65,6 +69,7 @@ function define({
   /**
    * Make it easy to look up exposed properties and attributes by generating
    * corresponding maps.
+   * Assign default setters where necessary.
    */
   const [exposedProps, exposedAttrs] = (function generateMaps() {
     const props = new Map();
@@ -75,6 +80,9 @@ function define({
       }
       if (cfg.attrName) {
         attrs.set(cfg.attrName.toLowerCase(), cfg);
+      }
+      if (typeof cfg.setter !== 'function') {
+        cfg.setter = cfg.eventType ? generateOnEventSetter(cfg) : PatchState;
       }
     }
     return [props, attrs];
@@ -264,7 +272,7 @@ function define({
     setProperty(propName, value) {
       // If an action was supplied for setting this property, use it.
       const attr = exposedProps.get(propName);
-      const action = attr.setter || PatchState;
+      const action = attr.setter;
 
       // Hyperapp state is updated only by invoking an action:
       this.dispatchAction(action, { [propName]: value });
@@ -324,7 +332,7 @@ function define({
 
       // If an action was supplied for this attribute, use it.
       const attr = exposedAttrs.get(attrName.toLowerCase());
-      const action = attr.setter || PatchState;
+      const action = attr.setter;
 
       // Prefer propName to attrName when sending to action.
       const propName = attr?.propName || attr.attrName;
@@ -365,6 +373,70 @@ function define({
   }
 
   /**
+   * Returns a Hyperapp Action function that knows how to set the value of an
+   * on<event> handler.
+   *
+   * @param {Object} config
+   * @returns {Hyperapp.Action}
+   */
+  function generateOnEventSetter({ propName, attrName, eventType }) {
+    return function SetOnEventHandler(state, props) {
+      // Prefer property name over attribute name.
+      const name = propName || attrName;
+
+      // props will look like this: { onsomeevent: 'some javascript code'}
+      const handler = props[name];
+
+      // If the inline event handler is not a function, wrap it in one.
+      if (handler && typeof handler !== 'function') {
+        handler = new Function(handler);
+      }
+
+      // We need to know the previous value, so we can remove it as a listener.
+      const oldHandler = state[name];
+
+      // Add the new handler to the state.
+      const newState = {
+        ...state,
+        [name]: handler,
+      };
+
+      // Configure an effect that will register the handler as a listener.
+      const effect = [
+        setOnEventListenerEffect,
+        { eventType, oldVal: oldHandler, newVal: handler },
+      ];
+
+      return [newState, effect];
+    };
+  }
+
+  /**
+   * Hyperapp Effect for handling changes to a component's on<event> HTML
+   * attribute.
+   * If the attribute value is being changed, registers the new value (must be a
+   * function) as an event listener, and de-registers the old value's listener.
+   * If the attribute was removed, de-registers the listener.
+   *
+   * @param {function} _ The dispatch function passed by Hyperapp. Not used here.
+   * @param {Object} props
+   * @param {string} props.eventType The application-defined event type.
+   * @param {function|undefined|null} props.oldVal The previous value of the
+   *    on<event> attribute
+   * @param {function|null} props.newVal The new value of the on<event> attribute.
+   */
+  function setOnEventListenerEffect(_, { eventType, oldVal, newVal }) {
+    // Make the function an event listener.
+    // But first, remove the current one if there is one.
+    if (oldVal !== null) {
+      this.removeEventListener(eventType, oldVal);
+    }
+    if (newVal !== null) {
+      this.addEventListener(eventType, newVal);
+    }
+  }
+
+  /**
    * Generates the specified properties and adds them to the CustomElement's
    * class definition.
    */
@@ -398,31 +470,6 @@ function define({
   })();
 
   customElements.define(name, CustomElement);
-}
-
-/**
- * Hyperapp Effect for handling changes to a component's on<event> HTML
- * attribute.
- * If the attribute value is being changed, registers the new value (must be a
- * function) as an event listener, and de-registers the old value's listener.
- * If the attribute was removed, de-registers the listener.
- *
- * @param {function} _ The dispatch function passed by Hyperapp. Not used here.
- * @param {Object} props
- * @param {string} props.eventType The application-defined event type.
- * @param {function|undefined|null} props.oldVal The previous value of the
- *    on<event> attribute
- * @param {function|null} props.newVal The new value of the on<event> attribute.
- */
-function setOnEventListenerEffect(_, { eventType, oldVal, newVal }) {
-  // Make the function an event listener.
-  // But first, remove the current one if there is one.
-  if (oldVal !== null) {
-    this.removeEventListener(eventType, oldVal);
-  }
-  if (newVal !== null) {
-    this.addEventListener(eventType, newVal);
-  }
 }
 
 /**
