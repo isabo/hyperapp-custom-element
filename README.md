@@ -112,11 +112,11 @@ define({
 });
 ```
 
-If your component has 'on\<event\>' attributes and/or dispatches events, a
-convenient `dispatchEventEffect` effect is exported from the module. This effect
-should receive a properties object with an `eventType` property and an
-`eventInit` property, which correspond to arguments of CustomEvent constructor,
-`typeArg` and `customEventInit` (see
+If your component has 'on\<event\>' attributes and/or dispatches events, you can
+use the convenient `dispatchEventEffect` effect that is exported by the module.
+This effect should receive a properties object with an `eventType` property and
+an `eventInit` property, which correspond to arguments of CustomEvent
+constructor, `typeArg` and `customEventInit` (see
 https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent)
 
 ```javascript
