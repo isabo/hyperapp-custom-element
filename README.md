@@ -112,7 +112,7 @@ define({
 });
 ```
 
-If your component has an on<event> attributes and/or dispatches events, a
+If your component has 'on\<event\>' attributes and/or dispatches events, a
 convenient `dispatchEventEffect` effect is exported from the module. This effect
 should receive a properties object with an `eventType` property and an
 `eventInit` property, which correspond to arguments of CustomEvent constructor,
