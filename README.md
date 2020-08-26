@@ -104,10 +104,43 @@ define({
   // Methods to expose to the consuming app, and the corresponding Actions that
   // will be invoked when the methods are called.
   exposedMethods: {
-    increment: IncrementAction,
+    increment: DoSomething,
   },
 
   // Whether to use Shadow DOM (true) or Light DOM (false).
   useShadowDOM: true,
 });
 ```
+
+If your component has an on<event> attributes and/or dispatches events, a
+convenient `dispatchEventEffect` effect is exported from the module. This effect
+should receive a properties object with an `eventType` property and an
+`eventInit` property, which correspond to arguments of CustomEvent constructor,
+`typeArg` and `customEventInit` (see
+https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent)
+
+```javascript
+import { define, dispatchEventEffect } from 'hyperapp-custom-element';
+
+function DoSomething(state, props) {
+  const newState = {
+    ...state,
+    ...props,
+  };
+
+  const effect = [
+    dispatchEventEffect,
+    {
+      eventType: 'Incremented',
+      eventInit: { bubbles: true },
+    },
+  ];
+
+  return [newState, effect];
+}
+```
+
+## Example
+
+- A full example component: [my-counter.js](./examples/counter.js)
+- A web page that consumes and exercises this component: [counter.html](./examples/counter.html)
