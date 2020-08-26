@@ -1,11 +1,14 @@
 # Build CustomElements using Hyperapp
 
-This library makes it easy to create a WebComponents-compliant CustomElement
-that uses the Hyperapp microframework to define its behaviour. Such components
-are extremely lightweight.
+This library makes it easy to create a
+[WebComponents Custom Elements v1](https://html.spec.whatwg.org/multipage/custom-elements.html#custom-elements)-compliant
+[CustomElement](https://developers.google.com/web/fundamentals/web-components/customelements)
+that uses the [Hyperapp](https://github.com/jorgebucaran/hyperapp)
+microframework to define its behaviour. Such components are extremely
+lightweight.
 
-The resulting CustomElement can be consumed by any HTML/Javascript project -- it
-does not require Hyperapp coding in order to use it.
+CustomElements created by this library can be consumed by any HTML/Javascript
+project or framework -- Hyperapp is not required.
 
 ## Hyperapp
 
