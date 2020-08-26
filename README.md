@@ -44,6 +44,15 @@ Then, import it into your app.
 import { define } from 'hyperapp-custom-element';
 ```
 
+Alternatively, if you're just hacking around and have not yet configured a build
+step with a packager, you can import it directly into a web page:
+
+```html
+<script type="module">
+  import { define } from 'https://unpkg.com/hyperapp-custom-element';
+</script>
+```
+
 ## How to Create a CustomElement
 
 ```javascript
