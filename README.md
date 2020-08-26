@@ -142,5 +142,6 @@ function DoSomething(state, props) {
 
 ## Example
 
-- A full example component: [my-counter.js](./examples/counter.js)
-- A web page that consumes and exercises this component: [counter.html](./examples/counter.html)
+- A full example component: [my-counter.js](./examples/counter/counter.js)
+- A web page that consumes and exercises this component:
+  [counter.html](./examples/counter/counter.html)
