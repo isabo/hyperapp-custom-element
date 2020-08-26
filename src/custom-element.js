@@ -256,7 +256,7 @@ function define({
     getProperty(propName) {
       // If a getter was supplied for this property, use it.
       const attr = exposedProps.get(propName);
-      const getter = attr?.getter || ((state) => state?.[propName]);
+      const getter = attr.getter || ((state) => state?.[propName]);
 
       return getter(this._state);
     }
@@ -271,15 +271,15 @@ function define({
      */
     setProperty(propName, value) {
       // If an action was supplied for setting this property, use it.
-      const attr = exposedProps.get(propName);
-      const action = attr.setter;
+      const cfg = exposedProps.get(propName);
+      const action = cfg.setter;
 
       // Hyperapp state is updated only by invoking an action:
       this.dispatchAction(action, { [propName]: value });
 
       // If there is a parallel HTML attribute, sync it.
-      if (attr.attrName) {
-        this.syncAttribute(attr.attrName, propName);
+      if (cfg.attrName) {
+        this.syncAttribute(cfg, value);
       }
     }
 
@@ -287,23 +287,26 @@ function define({
      * Syncs the state of an HTML attribute with its parallel CustomElement
      * property. Not to be used to set attribute values.
      *
-     * @param {string} attrName name of the HTML attribute
-     * @param {string} propName name of the property
+     * @param {string} cfg property/attribute configuration object
+     * @param {string} value value of the property
      * @private
      */
-    syncAttribute(attrName, propName) {
-      // If the property is a boolean with a value of `true`, the HTML
-      // attribute is a flag and has no value. Setting its value to an empty
-      // string achieves this. If its value is false, we need to remove the
-      // HTML attribute.
-      const value = this.getProperty(propName);
+    syncAttribute(cfg, value) {
+      const attrName = cfg.attrName;
+
       if (typeof value === 'boolean') {
+        // The property value is boolean, so the attribute
+        // If the property is a boolean with a value of `true`, the HTML
+        // attribute is a flag and has no value. Setting its value to an empty
+        // string achieves this. If its value is false, we need to remove the
+        // HTML attribute.
         if (value) {
           this.setAttribute(attrName, '');
         } else {
           this.removeAttribute(attrName);
         }
       } else {
+        // It's not a boolean, so use the original value.
         this.setAttribute(attrName, value);
       }
     }
@@ -331,14 +334,36 @@ function define({
       if (oldVal === newVal) return;
 
       // If an action was supplied for this attribute, use it.
-      const attr = exposedAttrs.get(attrName.toLowerCase());
-      const action = attr.setter;
+      const cfg = exposedAttrs.get(attrName.toLowerCase());
+      const action = cfg.setter;
 
       // Prefer propName to attrName when sending to action.
-      const propName = attr?.propName || attr.attrName;
+      const propName = cfg.propName || cfg.attrName;
+
+      // If the attribute value is an empty string, the HTML attribute behaves
+      // as if it is a boolean attribute. For boolean attributes we would
+      // therefore set the internal value to true. However, we cannot be sure
+      // that it's not a string attribute that just had its value changed to an
+      // empty string. Therefore, we will examine the previous value to
+      // confirm. A previous value of null that changes to an empty string (or
+      // the other way around) is indicative of adding (or removing) a boolean
+      // attribute. For boolean attributes, the only other value can be the name
+      // of the attribute itself. See:
+      // https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#boolean-attributes
+      if (
+        (newVal === '' && oldVal === null) ||
+        (newVal === null && oldVal === '') ||
+        (newVal === null && oldVal === attrName) ||
+        (newVal === attrName && oldVal === null)
+      ) {
+        // It's a boolean attribute, so store a boolean value (not '' or null).
+        newVal = !(newVal === null);
+      }
 
       // Hyperapp state is updated only by invoking an action:
-      this.dispatchAction(action, { [propName]: newVal });
+      this.dispatchAction(action, {
+        [propName]: newVal,
+      });
     }
 
     /**
