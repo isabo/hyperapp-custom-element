@@ -67,21 +67,15 @@ define({
 });
 
 function view(state) {
-  const nodes = [
+  return h('div', {}, [
     h('input', { value: state.count, type: 'text', disabled: true }),
-  ];
-
-  if (!state.hideButton) {
-    nodes.push(
+    !state.hideButton &&
       h(
         'button',
         { onclick: IncrementCounter },
         text(`Increment by ${state.incrementSize}`)
-      )
-    );
-  }
-
-  return h('div', {}, nodes);
+      ),
+  ]);
 }
 
 function SetIncrementSize(state, { incrementSize }) {
