@@ -98,6 +98,12 @@ function IncrementCounter(state, event) {
 
   return [
     newState,
-    [dispatchEventEffect, { eventType: 'Incremented', bubbles: true }],
+    [
+      dispatchEventEffect,
+      {
+        eventType: 'Incremented',
+        eventInit: { bubbles: true },
+      },
+    ],
   ];
 }
