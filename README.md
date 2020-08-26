@@ -131,7 +131,7 @@ function DoSomething(state, props) {
   const effect = [
     dispatchEventEffect,
     {
-      eventType: 'Incremented',
+      eventType: 'DidSomething',
       eventInit: { bubbles: true },
     },
   ];
