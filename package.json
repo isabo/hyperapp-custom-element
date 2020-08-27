@@ -4,7 +4,7 @@
   "description": "Creates Hyperapp-driven WebComponents CustomElements",
   "type": "module",
   "main": "./dist/custom-element.min.js",
-  "module": "./src/custom-element.min.js",
+  "module": "./dist/custom-element.min.js",
   "scripts": {
     "build": "rollup -c",
     "test": "echo \"Error: no test specified\" && exit 1"
