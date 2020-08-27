@@ -1,3 +1,4 @@
 .*
-dist
+rollup*
+src
 examples
