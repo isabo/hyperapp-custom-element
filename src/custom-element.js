@@ -136,7 +136,7 @@ function define({
       this._state = state;
 
       // Create a Hyperapp instance, which will render the view in the
-      // shadow DOM.
+      // shadow DOM or a DocumentFragment.
       app({
         init: state,
         view,
@@ -295,7 +295,6 @@ function define({
       const attrName = cfg.attrName;
 
       if (typeof value === 'boolean') {
-        // The property value is boolean, so the attribute
         // If the property is a boolean with a value of `true`, the HTML
         // attribute is a flag and has no value. Setting its value to an empty
         // string achieves this. If its value is false, we need to remove the
