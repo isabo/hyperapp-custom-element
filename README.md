@@ -67,11 +67,11 @@ define({
   app: app,
 
   // The initial state of the component.
-  state: { count: 0 },
+  state: { theThing: 'Nothing' },
 
   // The Hyperapp View function that builds the component's DOM.
   view: (state) => {
-    h('p', {}, [text('The current count is '), text(state.count)]);
+    h('p', {}, text(`The thing is: ${state.theThing}`));
   },
 
   // An array of Hyperapp subscriptions (optional).
@@ -84,23 +84,23 @@ define({
       // Name of HTML attribute.
       // Specify attrName or propName or both.
       // If both are specified, their values will be synchronised.
-      attrName: 'increment-size',
+      attrName: 'the-thing',
 
       // Name of JS property.
       // Specify attrName or propName or both.
       // If both are specified, their values will be synchronised.
-      propName: 'incrementSize',
+      propName: 'theThing',
 
-      // Action function that will incorporate the new property or attribute
-      // value into the component's state (optional). If not specified, the
+      // Optional Action function that will incorporate the new property or
+      // attribute value into the component's state. If not specified, the
       // value will be incorporated into the state thus:
       // `newState[propName||attrName] = newValue;`
-      setter: SetIncrementSizeAction,
+      setter: SetTheThing,
 
-      // A function that receives the state and returns the property value
-      // (optional). If not specified, the value will be obtained thus:
+      // Optional function that receives the state and returns the property
+      // value. If not specified, the value will be obtained thus:
       // `value = state[propName||attrName]`
-      getter: getIncrementSize,
+      getter: getTheThing,
     },
     {
       // This is how to define an on<event> attribute/property. Specify an event
@@ -109,14 +109,14 @@ define({
       // handler will be invoked.
       attrName: 'onsomeevent',
       propName: 'onsomeevent',
-      eventType: 'SomeEvent',
+      eventType: 'SomethingHappened',
     },
   ],
 
   // Methods to expose to the consuming app, and the corresponding Actions that
   // will be invoked when the methods are called.
   exposedMethods: {
-    increment: DoSomething,
+    doIt: DoSomething,
   },
 
   // Whether to use Shadow DOM (true) or Light DOM (false).
@@ -124,12 +124,14 @@ define({
 });
 ```
 
+### Dispatching Events
+
 If your component has 'on\<event\>' attributes and/or dispatches events, you can
 use the convenient `dispatchEventEffect` effect that is exported by the module.
 This effect should receive a properties object with an `eventType` property and
-an `eventInit` property, which correspond to arguments of CustomEvent
-constructor, `typeArg` and `customEventInit` (see
-https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent)
+an `eventInit` property, which correspond to arguments of the [CustomEvent
+constructor](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent),
+`typeArg` and `customEventInit`.
 
 ```javascript
 import { define, dispatchEventEffect } from 'hyperapp-custom-element';
