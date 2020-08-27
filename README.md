@@ -5,7 +5,7 @@ This library makes it easy to create a
 [CustomElement](https://developers.google.com/web/fundamentals/web-components/customelements)
 that uses the [Hyperapp](https://github.com/jorgebucaran/hyperapp)
 microframework to define its behaviour. Such components are extremely
-lightweight.
+lightweight, even including this dependency -- it's only a 1.2K download.
 
 CustomElements created by this library can be consumed by any HTML/Javascript
 project or framework -- Hyperapp is not required.
