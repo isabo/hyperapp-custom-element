@@ -22,8 +22,8 @@ export { generateClass, define, dispatchEventEffect };
  *
  * @param {Object} config
  * @param {function} config.app Hyperapp's app() function.
- * @param {Object} config.state An object containing the component's default
- *      state.
+ * @param {Object} config.init The initial state, or an Action that will return
+ *      the initial state (and possibly an effect too).
  * @param {Hyperapp.View} config.view Hyperapp view function that composes the
  *      component's DOM structure.
  * @param {Hyperapp.Subscriptions} config.subscriptions Hyperapp subscriptions
@@ -60,7 +60,8 @@ export { generateClass, define, dispatchEventEffect };
  */
 function generateClass({
   app,
-  state,
+  state, // Deprecated. Use init instead.
+  init,
   view,
   subscriptions,
   exposedConfig = [],
@@ -134,13 +135,14 @@ function generateClass({
       // it is given to start with.
       const span = root.appendChild(document.createElement('span'));
 
-      // Record the initial state.
-      this._state = state;
-
       // Create a Hyperapp instance, which will render the view in the
       // shadow DOM or a DocumentFragment.
+      if (state) {
+        init = state;
+        console.warn('Passing "state" is deprecated. Pass "init" instead');
+      }
       app({
-        init: state,
+        init,
         view,
         subscriptions,
         middleware: this.wrapDispatch.bind(this),
