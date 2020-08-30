@@ -1,10 +1,10 @@
-export { define, dispatchEventEffect };
+export { generateClass, define, dispatchEventEffect };
 
 /**
- * Creates a CustomElement that uses the Hyperapp microframework to define its
- * functionality. The resulting CustomElement is a standard Web Component that
- * can be consumed by any HTML/Javascript project -- it does not require
- * Hyperapp coding in order to use it.
+ * Creates a CustomElement class definition that uses the Hyperapp
+ * microframework to define its functionality. The resulting CustomElement is a
+ * standard Web Component that can be consumed by any HTML/Javascript project --
+ * it does not require Hyperapp coding in order to use it.
  *
  * CustomElements built with this function compose their DOM structures using
  * Hyperapp view functions. Their behaviour is governed by Hyperapp Action,
@@ -21,7 +21,6 @@ export { define, dispatchEventEffect };
  * need to be kept in sync with each other.
  *
  * @param {Object} config
- * @param {string} config.name Hyphenated tag name for the component.
  * @param {function} config.app Hyperapp's app() function.
  * @param {Object} config.state An object containing the component's default
  *      state.
@@ -55,9 +54,11 @@ export { define, dispatchEventEffect };
  * @param {Object} [exposedMethods] Object that maps method names to Hyperapp
  *      Actions that change the state in the required ways. Optional.
  * @param {boolean} [useShadowDOM] Whether to use Shadow DOM. Default: true.
+ * @param {HTMLElement} [parent] HTMLElement class to extend. Default:
+ *      HTMLElement.
+ * @returns {HTMLElement} a class that extends HTMLElement or a subclass of it.
  */
-function define({
-  name,
+function generateClass({
   app,
   state,
   view,
@@ -65,6 +66,7 @@ function define({
   exposedConfig = [],
   exposedMethods = {},
   useShadowDOM = true,
+  parent = HTMLElement,
 }) {
   /**
    * Make it easy to look up exposed properties and attributes by generating
@@ -91,7 +93,7 @@ function define({
   /**
    * Create a subclass of HTMLElement.
    */
-  class CustomElement extends HTMLElement {
+  class CustomElement extends parent {
     /**
      * The `dispatch` function is Hyperapp's method of invoking Actions that
      * change state. We will obtain and save a reference to it.
@@ -149,10 +151,12 @@ function define({
     /**
      * Called by the host (usually a browser) when the component enters the DOM.
      * For Light DOM components, appends the DocumentFragment to the DOM, which
-     * is not allowed in the constructor.
+     * is not allowed in the constructor. However, if this is an extension of a
+     * native element, we should not be writing any DOM at all as the native
+     * functionality takes care of that.
      */
     connectedCallback() {
-      if (!useShadowDOM) {
+      if (!useShadowDOM && parent === HTMLElement) {
         this.appendChild(this._fragment);
       }
     }
@@ -493,7 +497,23 @@ function define({
     }
   })();
 
-  customElements.define(name, CustomElement);
+  return CustomElement;
+}
+
+/**
+ * Provided for backward compatibility. Use `generateClass()` followed by
+ * `customElements.define()` instead.
+ *
+ * @deprecated
+ * @param {string} name
+ * @param {Object} cfg See `generateClass`
+ */
+function define(name, cfg) {
+  console.warn('"define()" is depracated. Use generateClass instead.');
+
+  const cls = generateClass(cfg);
+
+  customElements.define(name, cls);
 }
 
 /**
