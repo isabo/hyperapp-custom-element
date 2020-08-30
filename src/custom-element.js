@@ -243,12 +243,76 @@ function generateClass({
         // If the arguments match signature 3, this will just update the state
         // in Hyperapp.
         dispatch(action, props);
+
+        // Any modification of the state may need to be synced to the HTML
+        // attributes as well.
+        if (newState !== undefined) {
+          this.syncAttributes();
+        }
       };
 
       // Save a reference to dispatch, so that we can call it whenever we want.
       this._dispatch = dispatch;
 
       return newDispatch; // Hyperapp will use this instead of the original.
+    }
+
+    /**
+     * Dispatches a Hyperapp Action to change the state.
+     * Afterwards, ensures that HTML attributes are brought into sync with the
+     * new internal state.
+     *
+     * @param {Hyperapp.Action} action
+     * @param {Object} props
+     * @private
+     */
+    dispatchAction(action, props) {
+      this._dispatch(action, props);
+    }
+
+    /**
+     * Ensures that the top-level properties in the state are reflected in the
+     * attributes where relevant.
+     */
+    syncAttributes() {
+      for (const name in this._state) {
+        if (exposedProps.has(name)) {
+          // It's not an internal property. It might need to be synced to
+          // an attribute.
+          const cfg = exposedProps.get(name);
+          if (cfg.attrName) {
+            // Needs to be synced.
+            this.syncAttribute(cfg, this._state[name]);
+          }
+        }
+      }
+    }
+
+    /**
+     * Syncs the state of an HTML attribute with its parallel CustomElement
+     * property. Not to be used to set attribute values.
+     *
+     * @param {string} cfg property/attribute configuration object
+     * @param {string} value value of the property
+     * @private
+     */
+    syncAttribute(cfg, value) {
+      const attrName = cfg.attrName;
+
+      if (typeof value === 'boolean') {
+        // If the property is a boolean with a value of `true`, the HTML
+        // attribute is a flag and has no value. Setting its value to an empty
+        // string achieves this. If its value is false, we need to remove the
+        // HTML attribute.
+        if (value) {
+          this.setAttribute(attrName, '');
+        } else {
+          this.removeAttribute(attrName);
+        }
+      } else {
+        // It's not a boolean, so use the original value.
+        this.setAttribute(attrName, value);
+      }
     }
 
     /**
@@ -282,49 +346,6 @@ function generateClass({
 
       // Hyperapp state is updated only by invoking an action:
       this.dispatchAction(action, { [propName]: value });
-
-      // If there is a parallel HTML attribute, sync it.
-      if (cfg.attrName) {
-        this.syncAttribute(cfg, value);
-      }
-    }
-
-    /**
-     * Syncs the state of an HTML attribute with its parallel CustomElement
-     * property. Not to be used to set attribute values.
-     *
-     * @param {string} cfg property/attribute configuration object
-     * @param {string} value value of the property
-     * @private
-     */
-    syncAttribute(cfg, value) {
-      const attrName = cfg.attrName;
-
-      if (typeof value === 'boolean') {
-        // If the property is a boolean with a value of `true`, the HTML
-        // attribute is a flag and has no value. Setting its value to an empty
-        // string achieves this. If its value is false, we need to remove the
-        // HTML attribute.
-        if (value) {
-          this.setAttribute(attrName, '');
-        } else {
-          this.removeAttribute(attrName);
-        }
-      } else {
-        // It's not a boolean, so use the original value.
-        this.setAttribute(attrName, value);
-      }
-    }
-
-    /**
-     * Dispatches a Hyperapp Action to change the state.
-     *
-     * @param {Hyperapp.Action} action
-     * @param {Object} props
-     * @private
-     */
-    dispatchAction(action, props) {
-      this._dispatch(action, props);
     }
 
     /**
@@ -366,9 +387,7 @@ function generateClass({
       }
 
       // Hyperapp state is updated only by invoking an action:
-      this.dispatchAction(action, {
-        [propName]: newVal,
-      });
+      this.dispatchAction(action, { [propName]: newVal });
     }
 
     /**
