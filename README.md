@@ -68,9 +68,7 @@ const MyCustomElement = generateClass({
   init: { theThing: 'Nothing' },
 
   // The Hyperapp View function that builds the component's DOM.
-  view: (state) => {
-    h('p', {}, text(`The thing is: ${state.theThing}`));
-  },
+  view: (state) => h('p', {}, text(`The thing is: ${state.theThing}`)),
 
   // An array of Hyperapp subscriptions (optional).
   subscriptions: [],
@@ -140,9 +138,7 @@ const MyExtendedElement = generateClass({
   // With an extended native element no DOM will be built. However, Hyperapp
   // needs to have a view function, so provide something minimal. It will not
   // be added to the DOM, though.
-  view: (state) => {
-    h('span', {});
-  },
+  view: (state) => h('span', {}),
 
   subscriptions: [],
 
