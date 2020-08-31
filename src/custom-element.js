@@ -297,6 +297,15 @@ function generateClass({
      * @private
      */
     syncAttribute(cfg, value) {
+      // The standard browser behaviour is that an on<event> handler can be set
+      // via an attribute, but if set via a property, the handler will not be
+      // reflected into an attribute. This might be because the attribute
+      // value, a string, is wrapped into a function before being stored
+      // internally. Serialising this function and assigning it to the attribute
+      // makes it look as if the attribute value has changed, and will cause
+      // a stack overflow when the new value handled and starts the cycle again.
+      if (cfg.eventType) return;
+
       const attrName = cfg.attrName;
 
       if (typeof value === 'boolean') {
@@ -357,6 +366,7 @@ function generateClass({
      * @param {string|number|undefined} newVal
      */
     attributeChangedCallback(attrName, oldVal, newVal) {
+      // Don't waste time or handle re-entry.
       if (oldVal === newVal) return;
 
       // If an action was supplied for this attribute, use it.
@@ -437,8 +447,10 @@ function generateClass({
       let handler = props[name];
 
       // If the inline event handler is not a function, wrap it in one.
+      // The attribute value will remain a string, but the internal property
+      // value will be a function.
       if (handler && typeof handler !== 'function') {
-        handler = new Function(handler);
+        handler = new Function('event', handler);
       }
 
       // We need to know the previous value, so we can remove it as a listener.
