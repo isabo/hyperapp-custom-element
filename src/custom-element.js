@@ -1,10 +1,12 @@
-export { define, dispatchEventEffect };
+export { generateClass, define };
+
+import { setOnEventListenerEffect } from './effects';
 
 /**
- * Creates a CustomElement that uses the Hyperapp microframework to define its
- * functionality. The resulting CustomElement is a standard Web Component that
- * can be consumed by any HTML/Javascript project -- it does not require
- * Hyperapp coding in order to use it.
+ * Creates a CustomElement class definition that uses the Hyperapp
+ * microframework to define its functionality. The resulting CustomElement is a
+ * standard Web Component that can be consumed by any HTML/Javascript project --
+ * it does not require Hyperapp coding in order to use it.
  *
  * CustomElements built with this function compose their DOM structures using
  * Hyperapp view functions. Their behaviour is governed by Hyperapp Action,
@@ -21,10 +23,9 @@ export { define, dispatchEventEffect };
  * need to be kept in sync with each other.
  *
  * @param {Object} config
- * @param {string} config.name Hyphenated tag name for the component.
  * @param {function} config.app Hyperapp's app() function.
- * @param {Object} config.state An object containing the component's default
- *      state.
+ * @param {Object} config.init The initial state, or an Action that will return
+ *      the initial state (and possibly an effect too).
  * @param {Hyperapp.View} config.view Hyperapp view function that composes the
  *      component's DOM structure.
  * @param {Hyperapp.Subscriptions} config.subscriptions Hyperapp subscriptions
@@ -55,16 +56,20 @@ export { define, dispatchEventEffect };
  * @param {Object} [exposedMethods] Object that maps method names to Hyperapp
  *      Actions that change the state in the required ways. Optional.
  * @param {boolean} [useShadowDOM] Whether to use Shadow DOM. Default: true.
+ * @param {HTMLElement} [parent] HTMLElement class to extend. Default:
+ *      HTMLElement.
+ * @returns {HTMLElement} a class that extends HTMLElement or a subclass of it.
  */
-function define({
-  name,
+function generateClass({
   app,
-  state,
+  state, // Deprecated. Use init instead.
+  init,
   view,
   subscriptions,
   exposedConfig = [],
   exposedMethods = {},
   useShadowDOM = true,
+  parent = HTMLElement,
 }) {
   /**
    * Make it easy to look up exposed properties and attributes by generating
@@ -91,7 +96,7 @@ function define({
   /**
    * Create a subclass of HTMLElement.
    */
-  class CustomElement extends HTMLElement {
+  class CustomElement extends parent {
     /**
      * The `dispatch` function is Hyperapp's method of invoking Actions that
      * change state. We will obtain and save a reference to it.
@@ -132,13 +137,14 @@ function define({
       // it is given to start with.
       const span = root.appendChild(document.createElement('span'));
 
-      // Record the initial state.
-      this._state = state;
-
       // Create a Hyperapp instance, which will render the view in the
       // shadow DOM or a DocumentFragment.
+      if (state) {
+        init = state;
+        console.warn('Passing "state" is deprecated. Pass "init" instead');
+      }
       app({
-        init: state,
+        init,
         view,
         subscriptions,
         middleware: this.wrapDispatch.bind(this),
@@ -149,10 +155,12 @@ function define({
     /**
      * Called by the host (usually a browser) when the component enters the DOM.
      * For Light DOM components, appends the DocumentFragment to the DOM, which
-     * is not allowed in the constructor.
+     * is not allowed in the constructor. However, if this is an extension of a
+     * native element, we should not be writing any DOM at all as the native
+     * functionality takes care of that.
      */
     connectedCallback() {
-      if (!useShadowDOM) {
+      if (!useShadowDOM && parent === HTMLElement) {
         this.appendChild(this._fragment);
       }
     }
@@ -237,12 +245,85 @@ function define({
         // If the arguments match signature 3, this will just update the state
         // in Hyperapp.
         dispatch(action, props);
+
+        // Any modification of the state may need to be synced to the HTML
+        // attributes as well.
+        if (newState !== undefined) {
+          this.syncAttributes();
+        }
       };
 
       // Save a reference to dispatch, so that we can call it whenever we want.
       this._dispatch = dispatch;
 
       return newDispatch; // Hyperapp will use this instead of the original.
+    }
+
+    /**
+     * Dispatches a Hyperapp Action to change the state.
+     * Afterwards, ensures that HTML attributes are brought into sync with the
+     * new internal state.
+     *
+     * @param {Hyperapp.Action} action
+     * @param {Object} props
+     * @private
+     */
+    dispatchAction(action, props) {
+      this._dispatch(action, props);
+    }
+
+    /**
+     * Ensures that the top-level properties in the state are reflected in the
+     * attributes where relevant.
+     */
+    syncAttributes() {
+      for (const name in this._state) {
+        if (exposedProps.has(name)) {
+          // It's not an internal property. It might need to be synced to
+          // an attribute.
+          const cfg = exposedProps.get(name);
+          if (cfg.attrName) {
+            // Needs to be synced.
+            this.syncAttribute(cfg, this._state[name]);
+          }
+        }
+      }
+    }
+
+    /**
+     * Syncs the state of an HTML attribute with its parallel CustomElement
+     * property. Not to be used to set attribute values.
+     *
+     * @param {string} cfg property/attribute configuration object
+     * @param {string} value value of the property
+     * @private
+     */
+    syncAttribute(cfg, value) {
+      // The standard browser behaviour is that an on<event> handler can be set
+      // via an attribute, but if set via a property, the handler will not be
+      // reflected into an attribute. This might be because the attribute
+      // value, a string, is wrapped into a function before being stored
+      // internally. Serialising this function and assigning it to the attribute
+      // makes it look as if the attribute value has changed, and will cause
+      // a stack overflow when the new value handled and starts the cycle again.
+      if (cfg.eventType) return;
+
+      const attrName = cfg.attrName;
+
+      if (typeof value === 'boolean') {
+        // If the property is a boolean with a value of `true`, the HTML
+        // attribute is a flag and has no value. Setting its value to an empty
+        // string achieves this. If its value is false, we need to remove the
+        // HTML attribute.
+        if (value) {
+          this.setAttribute(attrName, '');
+        } else {
+          this.removeAttribute(attrName);
+        }
+      } else {
+        // It's not a boolean, so use the original value.
+        this.setAttribute(attrName, value);
+      }
     }
 
     /**
@@ -276,49 +357,6 @@ function define({
 
       // Hyperapp state is updated only by invoking an action:
       this.dispatchAction(action, { [propName]: value });
-
-      // If there is a parallel HTML attribute, sync it.
-      if (cfg.attrName) {
-        this.syncAttribute(cfg, value);
-      }
-    }
-
-    /**
-     * Syncs the state of an HTML attribute with its parallel CustomElement
-     * property. Not to be used to set attribute values.
-     *
-     * @param {string} cfg property/attribute configuration object
-     * @param {string} value value of the property
-     * @private
-     */
-    syncAttribute(cfg, value) {
-      const attrName = cfg.attrName;
-
-      if (typeof value === 'boolean') {
-        // If the property is a boolean with a value of `true`, the HTML
-        // attribute is a flag and has no value. Setting its value to an empty
-        // string achieves this. If its value is false, we need to remove the
-        // HTML attribute.
-        if (value) {
-          this.setAttribute(attrName, '');
-        } else {
-          this.removeAttribute(attrName);
-        }
-      } else {
-        // It's not a boolean, so use the original value.
-        this.setAttribute(attrName, value);
-      }
-    }
-
-    /**
-     * Dispatches a Hyperapp Action to change the state.
-     *
-     * @param {Hyperapp.Action} action
-     * @param {Object} props
-     * @private
-     */
-    dispatchAction(action, props) {
-      this._dispatch(action, props);
     }
 
     /**
@@ -330,6 +368,7 @@ function define({
      * @param {string|number|undefined} newVal
      */
     attributeChangedCallback(attrName, oldVal, newVal) {
+      // Don't waste time or handle re-entry.
       if (oldVal === newVal) return;
 
       // If an action was supplied for this attribute, use it.
@@ -360,9 +399,7 @@ function define({
       }
 
       // Hyperapp state is updated only by invoking an action:
-      this.dispatchAction(action, {
-        [propName]: newVal,
-      });
+      this.dispatchAction(action, { [propName]: newVal });
     }
 
     /**
@@ -412,8 +449,10 @@ function define({
       let handler = props[name];
 
       // If the inline event handler is not a function, wrap it in one.
+      // The attribute value will remain a string, but the internal property
+      // value will be a function.
       if (handler && typeof handler !== 'function') {
-        handler = new Function(handler);
+        handler = new Function('event', handler);
       }
 
       // We need to know the previous value, so we can remove it as a listener.
@@ -433,31 +472,6 @@ function define({
 
       return [newState, effect];
     };
-  }
-
-  /**
-   * Hyperapp Effect for handling changes to a component's on<event> HTML
-   * attribute.
-   * If the attribute value is being changed, registers the new value (must be a
-   * function) as an event listener, and de-registers the old value's listener.
-   * If the attribute was removed, de-registers the listener.
-   *
-   * @param {function} _ The dispatch function passed by Hyperapp. Not used here.
-   * @param {Object} props
-   * @param {string} props.eventType The application-defined event type.
-   * @param {function|undefined|null} props.oldVal The previous value of the
-   *    on<event> attribute
-   * @param {function|null} props.newVal The new value of the on<event> attribute.
-   */
-  function setOnEventListenerEffect(_, { eventType, oldVal, newVal }) {
-    // Make the function an event listener.
-    // But first, remove the current one if there is one.
-    if (oldVal !== null) {
-      this.removeEventListener(eventType, oldVal);
-    }
-    if (newVal !== null) {
-      this.addEventListener(eventType, newVal);
-    }
   }
 
   /**
@@ -493,24 +507,21 @@ function define({
     }
   })();
 
-  customElements.define(name, CustomElement);
+  return CustomElement;
 }
 
 /**
- * Hyperapp Effect that dispatches a CustomEvent for the consuming app to
- * consume.
+ * Provided for backward compatibility. Use `generateClass()` followed by
+ * `customElements.define()` instead.
  *
- * @param {function} _ The dispatch function passed by Hyperapp. Not used here.
- * @param {Object} props
- * @param {string} props.eventType The name of the event. Corresponds to typeArg
- *    in the CustomEvent constructor.
- * @param {CustomEventInit} props.eventInit Settings for the custom event. Corr-
- *    esponds to customEventInit in the CustomEvent constructor.
- * @see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent
+ * @deprecated
+ * @param {string} name
+ * @param {Object} cfg See `generateClass`
  */
-function dispatchEventEffect(_, { eventType, eventInit }) {
-  const ev = new CustomEvent(eventType, eventInit);
-  const cancel = !this.dispatchEvent(ev);
-  // TODO: figure out how to supply useful functionality for cancelling default
-  // actions.
+function define(name, cfg) {
+  console.warn('"define()" is depracated. Use generateClass instead.');
+
+  const cls = generateClass(cfg);
+
+  customElements.define(name, cls);
 }

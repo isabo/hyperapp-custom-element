@@ -57,17 +57,15 @@ step with a packager, you can import it directly into a web page:
 
 ```javascript
 import { app, h, text } from 'hyperapp';
-import { define } from 'hyperapp-custom-element';
+import { generateClass } from 'hyperapp-custom-element';
 
-define({
-  // The tag name of the CustomElement.
-  name: 'my-counter',
-
+const MyCustomElement = generateClass({
   // The library uses your imported version of Hyperapp.
   app: app,
 
-  // The initial state of the component.
-  state: { theThing: 'Nothing' },
+  // The initial state of the component. It can be a state object, or anything
+  // dispatchable by Hyperapp.
+  init: { theThing: 'Nothing' },
 
   // The Hyperapp View function that builds the component's DOM.
   view: (state) => {
@@ -122,6 +120,48 @@ define({
   // Whether to use Shadow DOM (true) or Light DOM (false).
   useShadowDOM: true,
 });
+
+// Register the class and its tag name.
+customElements.define('my-tag', MyCustomElement);
+```
+
+### Extending Native Elements
+
+```javascript
+import { app, h, text } from 'hyperapp';
+import { generateClass } from 'hyperapp-custom-element';
+
+const MyExtendedElement = generateClass({
+  app,
+
+  // The initial state of the component.
+  init: { theThing: 'Nothing' },
+
+  // With an extended native element no DOM will be built. However, Hyperapp
+  // needs to have a view function, so provide something minimal. It will not
+  // be added to the DOM, though.
+  view: (state) => {
+    h('span', {});
+  },
+
+  subscriptions: [],
+
+  // When extending a native element, specify here only the properties,
+  // attributes and methods that are being *added* -- not those that the native
+  // element already has.
+  exposedConfig: [],
+
+  exposedMethods: {},
+
+  // When extending a native element, this needs to be false.
+  useShadowDOM: false,
+});
+
+// Register the class, its tag name, and the element that is being extended.
+// Note the additional options object, that tells the browser which tag we are
+// extending. This is necessary because some tags share the same HTMLElement
+// class.
+customElements.define('extended-tag', MyExtendedElement, { extends: 'input' });
 ```
 
 ### Dispatching Events
@@ -156,6 +196,7 @@ function DoSomething(state, props) {
 
 ## Example
 
-- A full example component: [my-counter.js](./examples/counter/my-counter.js)
-- A web page that consumes and exercises this component:
-  [counter.html](./examples/counter/counter.html)
+- Counter component:
+  - A full example component: [my-counter.js](./examples/counter/my-counter.js)
+  - A web page that consumes and exercises this component:
+    [counter.html](./examples/counter/counter.html)
