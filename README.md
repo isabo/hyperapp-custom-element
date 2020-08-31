@@ -130,6 +130,9 @@ import { app, h, text } from 'hyperapp';
 import { generateClass } from 'hyperapp-custom-element';
 
 const MyExtendedElement = generateClass({
+  // The native element class that is being extended.
+  parent: HTMLInputElement,
+
   app,
 
   // The initial state of the component.
