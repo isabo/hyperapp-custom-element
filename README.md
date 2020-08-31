@@ -41,7 +41,7 @@ npm install hyperapp-custom-element
 Then, import it into your app.
 
 ```javascript
-import { define } from 'hyperapp-custom-element';
+import { generateClass } from 'hyperapp-custom-element';
 ```
 
 Alternatively, if you're just hacking around and have not yet configured a build
@@ -49,7 +49,7 @@ step with a packager, you can import it directly into a web page:
 
 ```html
 <script type="module">
-  import { define } from 'https://unpkg.com/hyperapp-custom-element';
+  import { generateClass } from 'https://unpkg.com/hyperapp-custom-element';
 </script>
 ```
 
@@ -173,7 +173,7 @@ constructor](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/Custom
 `typeArg` and `customEventInit`.
 
 ```javascript
-import { define, dispatchEventEffect } from 'hyperapp-custom-element';
+import { dispatchEventEffect } from 'hyperapp-custom-element';
 
 function DoSomething(state, props) {
   const newState = {
