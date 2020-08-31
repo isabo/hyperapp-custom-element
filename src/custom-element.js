@@ -1,6 +1,6 @@
-import { setOnEventListenerEffect } from './effects';
-
 export { generateClass, define };
+
+import { setOnEventListenerEffect } from './effects';
 
 /**
  * Creates a CustomElement class definition that uses the Hyperapp
