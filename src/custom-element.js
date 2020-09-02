@@ -28,34 +28,37 @@ import { setOnEventListenerEffect } from './effects';
  *      the initial state (and possibly an effect too).
  * @param {Hyperapp.View} config.view Hyperapp view function that composes the
  *      component's DOM structure.
- * @param {Hyperapp.Subscriptions} config.subscriptions Hyperapp subscriptions
+ * @param {Hyperapp.Subscriptions} [config.subscriptions] Hyperapp subscriptions
  *      function.
  *
- * @param {Object[]} [exposedConfig] Array of config objects (optional):
- * @param {string} exposedConfig[].attrName HTML attribute name. Optional.
- * @param {string} exposedConfig[].propName Javascript Element property name.
- * @param {Hyperapp.Action} exposedConfig[].setter Hyperapp Action function that
- *      controls whether/how the state will change when the HTML attribute value
- *      or the CustomElement property value is changed by the consuming app.
- *      If the HTML attribute does not need a value, e.g. `<tag-name disabled>`,
- *      i.e. its mere presence is a flag, then when it is added to the tag the
+ * @param {Object[]} [config.exposedConfig] Array of config objects (optional):
+ * @param {string} [config.exposedConfig[].attrName] HTML attribute name
+ *      (optional).
+ * @param {string} [config.exposedConfig[].propName] Javascript Element property
+ *      name.
+ * @param {Hyperapp.Action} [config.exposedConfig[].setter] Hyperapp Action
+ *      function that controls whether/how the state will change when the HTML
+ *      attribute valueor the CustomElement property value is changed by the
+ *      consuming app.If the HTML attribute does not need a value, e.g.
+ *      `<tag-name disabled>`, i.e. its mere presence is a flag, then when it is
  *      setter action will be called with `{[attrName]: ''}`. When removed from
- *      the tag, the setter action will be called with `{[attrName]: null}`.
- *      This means that any value except `null` indicates the presence of the
- *      flag. Optional.
- * @param {function(Object):*} exposedConfig[].getter A function that takes the
- *      state as an argument and returns the value of the attribute or property.
- *      This allows the exposed properties to be named differently from internal
- *      properties, or to be based on a combination of multiple internal
- *      properties. Optional.
- * @param {string} exposedConfig[].eventType When the attribute and/or property
- *      is an on<event>, this signifies the name of the event that needs to be
- *      listened to, i.e. that will be dispatched by an Action/Effect when some-
- *      thing meaningful happens.
+ *      added to the tag, the setter action will be called with
+ *      `{[attrName]: null}`. This means that any value except `null` indicates
+ *      the presence of the flag. Optional.
+ * @param {function(Object):*} [config.exposedConfig[].getter] A function that
+ *      takes the state as an argument and returns the value of the attribute or
+ *      property. This allows the exposed properties to be named differently
+ *      from internal properties, or to be based on a combination of multiple
+ *      internal properties. Optional.
+ * @param {string} [config.exposedConfig[].eventType] When the attribute and/or
+ *      property is an on<event>, this signifies the name of the event that
+ *      needs to be listened to, i.e. that will be dispatched by an
+ *      Action/Effect when something meaningful happens.
  *
- * @param {Object} [exposedMethods] Object that maps method names to Hyperapp
- *      Actions that change the state in the required ways. Optional.
- * @param {boolean} [useShadowDOM] Whether to use Shadow DOM. Default: true.
+ * @param {Object} [config.exposedMethods] Object that maps method names to
+ *      Hyperapp Actions that change the state in the required ways. Optional.
+ * @param {boolean} [config.useShadowDOM] Whether to use Shadow DOM. Default:
+ *      true.
  * @param {HTMLElement} [parent] HTMLElement class to extend. Default:
  *      HTMLElement.
  * @returns {HTMLElement} a class that extends HTMLElement or a subclass of it.
