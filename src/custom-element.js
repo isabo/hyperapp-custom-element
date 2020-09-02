@@ -1,6 +1,7 @@
 export { generateClass, define };
 
 import { setOnEventListenerEffect } from './effects';
+import { combineMiddleware } from './middleware';
 
 /**
  * Creates a CustomElement class definition that uses the Hyperapp
@@ -30,6 +31,8 @@ import { setOnEventListenerEffect } from './effects';
  *      component's DOM structure.
  * @param {Hyperapp.Subscriptions} [config.subscriptions] Hyperapp subscriptions
  *      function.
+ * @param {Hyperapp.Middleware} [config.middleware] Hyperapp middleware function
+ *      that wraps `dispatch`.
  *
  * @param {Object[]} [config.exposedConfig] Array of config objects (optional):
  * @param {string} [config.exposedConfig[].attrName] HTML attribute name
@@ -69,6 +72,7 @@ function generateClass({
   init,
   view,
   subscriptions,
+  middleware,
   exposedConfig = [],
   exposedMethods = {},
   useShadowDOM = true,
@@ -146,11 +150,21 @@ function generateClass({
         init = state;
         console.warn('Passing "state" is deprecated. Pass "init" instead');
       }
+
+      // Configure our middleware.
+      const wrappedDispatch = this.wrapDispatch.bind(this);
+      if (typeof middleware === 'function') {
+        // Consumer supplied middleware. We need to wrap it in our own.
+        middleware = combineMiddleware(wrappedDispatch, middleware);
+      } else {
+        middleware = wrappedDispatch;
+      }
+
       app({
         init,
         view,
         subscriptions,
-        middleware: this.wrapDispatch.bind(this),
+        middleware,
         node: span,
       });
     }
