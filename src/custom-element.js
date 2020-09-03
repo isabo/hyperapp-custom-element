@@ -488,6 +488,8 @@ function generateClass({
       // value will be a function.
       if (handler && typeof handler !== 'function') {
         handler = new Function('event', handler);
+        // Assign the function a name for logging purposes.
+        Object.defineProperty(handler, 'name', { value: name });
       }
 
       // We need to know the previous value, so we can remove it as a listener.
