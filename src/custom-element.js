@@ -1,6 +1,7 @@
 export { generateClass, define };
 
 import { setOnEventListenerEffect } from './effects';
+import { combineMiddleware } from './middleware';
 
 /**
  * Creates a CustomElement class definition that uses the Hyperapp
@@ -30,6 +31,8 @@ import { setOnEventListenerEffect } from './effects';
  *      component's DOM structure.
  * @param {Hyperapp.Subscriptions} [config.subscriptions] Hyperapp subscriptions
  *      function.
+ * @param {Hyperapp.Middleware} [config.middleware] Hyperapp middleware function
+ *      that wraps `dispatch`.
  *
  * @param {Object[]} [config.exposedConfig] Array of config objects (optional):
  * @param {string} [config.exposedConfig[].attrName] HTML attribute name
@@ -69,6 +72,7 @@ function generateClass({
   init,
   view,
   subscriptions,
+  middleware,
   exposedConfig = [],
   exposedMethods = {},
   useShadowDOM = true,
@@ -146,11 +150,21 @@ function generateClass({
         init = state;
         console.warn('Passing "state" is deprecated. Pass "init" instead');
       }
+
+      // Configure our middleware.
+      const wrappedDispatch = this.wrapDispatch.bind(this);
+      if (typeof middleware === 'function') {
+        // Consumer supplied middleware. We need to wrap it in our own.
+        middleware = combineMiddleware(wrappedDispatch, middleware);
+      } else {
+        middleware = wrappedDispatch;
+      }
+
       app({
         init,
         view,
         subscriptions,
-        middleware: this.wrapDispatch.bind(this),
+        middleware,
         node: span,
       });
     }
@@ -196,6 +210,24 @@ function generateClass({
      * @returns {function} a modified dispatch function
      */
     wrapDispatch(dispatch) {
+      /**
+       * Binds an action to this element.
+       * When used in conjunction with additional middleware that wraps actions
+       * and effects, it copies the $isWrapped indicator from the unbound
+       * function to the bound function. This can be used by the middleware to
+       * prevent rewrapping wrapped functions.
+       *
+       * @param {Hyperapp.Action} action
+       */
+      const bindToThis = (action) => {
+        const bound = action.bind(this);
+        const isWrapped = action['$isWrapped'];
+        if (isWrapped) {
+          bound['$isWrapped'] = true;
+        }
+        return bound;
+      };
+
       const newDispatch = (action, props) => {
         // In order to bind the Actions to the component, we need to identify
         // the actions in the various signatures of the dispatch function.
@@ -216,18 +248,18 @@ function generateClass({
         let newState;
         if (typeof action === 'function') {
           // Signature 1.
-          action = action.bind(this);
+          action = bindToThis(action);
         } else if (Array.isArray(action)) {
           if (typeof action[0] === 'function') {
             // Signature 2: the first element of the array is an action.
-            action[0] = action[0].bind(this);
+            action[0] = bindToThis(action[0]);
           } else {
             // Signature 3: the first element of the array is a new state.
             newState = action[0];
             // The remaining elements are Effect tuples.
             for (let i = 1; i < action.length; i++) {
               const tuple = action[i];
-              tuple[0] = tuple[0].bind(this);
+              tuple[0] = bindToThis(tuple[0]);
             }
           }
         } else {
@@ -456,6 +488,8 @@ function generateClass({
       // value will be a function.
       if (handler && typeof handler !== 'function') {
         handler = new Function('event', handler);
+        // Assign the function a name for logging purposes.
+        Object.defineProperty(handler, 'name', { value: name });
       }
 
       // We need to know the previous value, so we can remove it as a listener.

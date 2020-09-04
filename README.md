@@ -70,8 +70,13 @@ const MyCustomElement = generateClass({
   // The Hyperapp View function that builds the component's DOM.
   view: (state) => h('p', {}, text(`The thing is: ${state.theThing}`)),
 
-  // An array of Hyperapp subscriptions (optional).
-  subscriptions: [],
+  // A function that returns an array of Hyperapp subscriptions (optional).
+  subscriptions: getSubscriptions,
+
+  // A middleware function (optional).
+  // N.B.: This library defines its own middleware. If middleware is supplied
+  // here, it will be wrapped by the library's own middleware.
+  middleware: middleware,
 
   // An array of Javascript properties and HTML attributes (they often come in
   // pairs) that can be used by a consuming app to configure the component.
@@ -143,7 +148,9 @@ const MyExtendedElement = generateClass({
   // be added to the DOM, though.
   view: (state) => h('span', {}),
 
-  subscriptions: [],
+  subscriptions: getSubscriptions,
+
+  middleware: middleware,
 
   // When extending a native element, specify here only the properties,
   // attributes and methods that are being *added* -- not those that the native
