@@ -356,8 +356,17 @@ function generateClass({
           this.removeAttribute(attrName);
         }
       } else {
-        // It's not a boolean, so use the original value.
-        this.setAttribute(attrName, value);
+        // It's not a boolean.
+
+        // If it is an empty string, undefined, null etc. the best way to
+        // represent that is by removing the attribute. Otherwise, it would
+        // either behave like a flag or have a string value of 'undefined' or
+        // 'null'.
+        if (value === undefined || value === null || value === '') {
+          this.removeAttribute(attrName);
+        } else {
+          this.setAttribute(attrName, value);
+        }
       }
     }
 
