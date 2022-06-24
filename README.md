@@ -21,7 +21,7 @@ events to which a CustomElement may need to react. An app that consumes a
 CustomElement component may:
 
 1. set HTML attributes in the component's HTML tag;
-2. set values of JavasScript properties that the component exposes;
+2. set values of JavaScript properties that the component exposes;
 3. call JavaScript methods that the component exposes.
 
 In addition, some or all of the Javascript properties and HTML attributes need
