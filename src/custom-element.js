@@ -186,9 +186,11 @@ function generateClass({
      * Cleans up when called by the host (usually a browser).
      */
     disconnectedCallback() {
-      // TODO: use the value returned from app, which is a kill function.
-      // See https://github.com/jorgebucaran/hyperapp/pull/873
+      // Calling the dispatch function with no arguments is the official way to
+      // halt the app and free its relevant resources.
+      this._dispatch();
       this._dispatch = undefined;
+      this._fragment = undefined;
     }
 
     /**
