@@ -1,7 +1,7 @@
 export { generateClass, define };
 
 import { setOnEventListenerEffect } from './effects';
-import { combineMiddleware } from './middleware';
+import { combineDispatchInitialisers } from './middleware';
 
 /**
  * Creates a CustomElement class definition that uses the Hyperapp
@@ -31,8 +31,8 @@ import { combineMiddleware } from './middleware';
  *      component's DOM structure.
  * @param {Hyperapp.Subscriptions} [config.subscriptions] Hyperapp subscriptions
  *      function.
- * @param {Hyperapp.Middleware} [config.middleware] Hyperapp middleware function
- *      that wraps `dispatch`.
+ * @param {Hyperapp.DispatchFn} [config.dispatch] Hyperapp dispatch initialiser
+ *      function - akin to middleware that wraps `dispatch`.
  *
  * @param {Object[]} [config.exposedConfig] Array of config objects (optional):
  * @param {string} [config.exposedConfig[].attrName] HTML attribute name
@@ -72,7 +72,7 @@ function generateClass({
   init,
   view,
   subscriptions,
-  middleware,
+  dispatch,
   exposedConfig = [],
   exposedMethods = {},
   useShadowDOM = true,
@@ -151,20 +151,21 @@ function generateClass({
         console.warn('Passing "state" is deprecated. Pass "init" instead');
       }
 
-      // Configure our middleware.
+      // Configure our dispatch initialiser.
       const wrappedDispatch = this.wrapDispatch.bind(this);
-      if (typeof middleware === 'function') {
-        // Consumer supplied middleware. We need to wrap it in our own.
-        middleware = combineMiddleware(wrappedDispatch, middleware);
+      if (typeof dispatch === 'function') {
+        // Consumer supplied dispatch initialiser. Hyperapp can accept only a
+        // single dispatch initialiser, so we need to combine it with our own.
+        dispatch = combineDispatchInitialisers(wrappedDispatch, dispatch);
       } else {
-        middleware = wrappedDispatch;
+        dispatch = wrappedDispatch;
       }
 
       app({
         init,
         view,
         subscriptions,
-        middleware,
+        dispatch,
         node: span,
       });
     }
@@ -194,7 +195,9 @@ function generateClass({
     }
 
     /**
-     * Returns a wrapped version the Hyperapp dispatch function.
+     * A dispatch initialiser that generates a wrapped version of Hyperapp's
+     * dispatch function.
+     *
      * As a result, all Actions and Effects that are dispatched are bound to the
      * CustomElement instance as `this`, and our internal `_state` property is
      * updated every time an Action changes the state.
