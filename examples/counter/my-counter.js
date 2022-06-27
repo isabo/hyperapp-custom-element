@@ -1,6 +1,6 @@
 import { h, text, app } from 'https://unpkg.com/hyperapp';
 import {
-  define,
+  generateClass,
   dispatchEventEffect,
 } from 'https://unpkg.com/hyperapp-custom-element';
 
@@ -21,7 +21,7 @@ import {
  * ----------------------
  * incrementSize:  Get/set the size of the increments -- see similarly
  *                 named HTML attribute.
- * hideButton:     Get/set whether the increment buttonis hidden (true/false).
+ * hideButton:     Get/set whether the increment button is hidden (true/false).
  * count:          Get the current value stored in the component.
  *
  * Javascript Methods:
@@ -33,10 +33,10 @@ import {
  * ------------------
  * 'Incremented':  Dispatched whenever the count is incremented.
  */
-define({
+const MyCounter = generateClass({
   name: 'my-counter',
   app: app,
-  state: {
+  init: {
     count: 0,
     incrementSize: 1,
     hideButton: false,
@@ -65,6 +65,8 @@ define({
     increment: IncrementCounter,
   },
 });
+
+customElements.define('my-counter', MyCounter);
 
 function view(state) {
   return h('div', {}, [
