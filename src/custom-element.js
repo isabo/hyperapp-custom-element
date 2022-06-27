@@ -25,8 +25,9 @@ import { combineDispatchInitialisers } from './middleware';
  *
  * @param {Object} config
  * @param {function} config.app Hyperapp's app() function.
- * @param {Object} config.init The initial state, or an Action that will return
- *      the initial state (and possibly an effect too).
+ * @param {Object|Hyperapp.Action} config.init Any valid input for the Hyperapp
+ *      `app()` function argument's `init` property, e.g. an object, an Action
+ *      function, or anything that can be returned by an Action function.
  * @param {Hyperapp.View} config.view Hyperapp view function that composes the
  *      component's DOM structure.
  * @param {Hyperapp.Subscriptions} [config.subscriptions] Hyperapp subscriptions
