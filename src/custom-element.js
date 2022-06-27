@@ -256,8 +256,14 @@ function generateClass({
             newState = action[0];
             // The remaining elements are Effect tuples.
             for (let i = 1; i < action.length; i++) {
-              const tuple = action[i];
-              tuple[0] = bindToThis(tuple[0]);
+              const effect = action[i];
+              if (Array.isArray(effect)) {
+                // This element is an Effect tuple: [Effecter, props]
+                effect[0] = bindToThis(effect[0]);
+              } else {
+                // This element is a bare Effecter.
+                action[i] = bindToThis(effect);
+              }
             }
           }
         } else {
