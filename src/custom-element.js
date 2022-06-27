@@ -1,4 +1,4 @@
-export { generateClass, define };
+export { generateClass };
 
 import { setOnEventListenerEffect } from './effects';
 import { combineDispatchInitialisers } from './middleware';
@@ -69,7 +69,6 @@ import { combineDispatchInitialisers } from './middleware';
  */
 function generateClass({
   app,
-  state, // Deprecated. Use init instead.
   init,
   view,
   subscriptions,
@@ -144,13 +143,6 @@ function generateClass({
       // can replace, such as <span>. Hyperapp always _replaces_ the node that
       // it is given to start with.
       const span = root.appendChild(document.createElement('span'));
-
-      // Create a Hyperapp instance, which will render the view in the
-      // shadow DOM or a DocumentFragment.
-      if (state) {
-        init = state;
-        console.warn('Passing "state" is deprecated. Pass "init" instead');
-      }
 
       // Configure our dispatch initialiser.
       const wrappedDispatch = this.wrapDispatch.bind(this);
@@ -560,20 +552,4 @@ function generateClass({
   })();
 
   return CustomElement;
-}
-
-/**
- * Provided for backward compatibility. Use `generateClass()` followed by
- * `customElements.define()` instead.
- *
- * @deprecated
- * @param {string} name
- * @param {Object} cfg See `generateClass`
- */
-function define(name, cfg) {
-  console.warn('"define()" is depracated. Use generateClass instead.');
-
-  const cls = generateClass(cfg);
-
-  customElements.define(name, cls);
 }
