@@ -227,34 +227,33 @@ function generateClass({
       };
 
       const newDispatch = (action, props) => {
-        // In order to bind the Actions to the component, we need to identify
-        // the actions in the various signatures of the dispatch function.
+        // In order to bind the Actions and Effecter functions to the component,
+        // we need to identify the action functions and Effecter functions in
+        // the various signatures of the dispatch function.
         // Also, we need to identify and capture changes of state.
-        // 1. Direct invocation, e.g. from an Effect:
-        //      dispatch(action, props)
-        // 2. Invocation with an Action tuple returned by an Action:
-        //      dispatch([action, props])
-        // 3. Invocation with a state and Effect tuples returned by an Action:
-        //      dispatch([state, [effect, props], [effect, props], ...])
-        // 4. Invocation with just a state:
-        //      dispatch(state)
-        //
-        // In cases 1 and 2, we need to bind the actions.
-        // In case 3 we need to capture the new state, and bind all the effects.
-        // In case 4, we just need to capture the state.
 
         let newState;
         if (typeof action === 'function') {
-          // Signature 1.
+          // The dispatch function is being called like this:
+          //   `dispatch(function, props?)`
+          // The function is an action function. We need to bind it.
           action = bindToThis(action);
         } else if (Array.isArray(action)) {
+          // The dispatch function is being called like this:
+          //   `dispatch([...])`
+          // If the first element of the array is either an action function or
+          // a new state value.
           if (typeof action[0] === 'function') {
-            // Signature 2: the first element of the array is an action.
+            // The first element of the array is an action function.
+            // We need to bind it.
             action[0] = bindToThis(action[0]);
           } else {
-            // Signature 3: the first element of the array is a new state.
+            // The first element of the array is a new state value.
+            // We need to capture it.
             newState = action[0];
-            // The remaining elements are Effect tuples.
+
+            // The remaining elements are Effect tuples, or bare Effecter
+            // functions. We need to bind the Effecter functions.
             for (let i = 1; i < action.length; i++) {
               const effect = action[i];
               if (Array.isArray(effect)) {
@@ -267,7 +266,9 @@ function generateClass({
             }
           }
         } else {
-          // Signature 4: it's just a new state (no Effects).
+          // The dispatch function is being called like this:
+          //   `dispatch(state)`
+          // We need to capture the state.
           newState = action;
         }
 
@@ -281,8 +282,6 @@ function generateClass({
         }
 
         // Now call the original dispatch.
-        // If the arguments match signature 3, this will just update the state
-        // in Hyperapp.
         dispatch(action, props);
 
         // Any modification of the state may need to be synced to the HTML
