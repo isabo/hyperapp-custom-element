@@ -1,7 +1,7 @@
-export { generateClass, define };
+export { generateClass };
 
 import { setOnEventListenerEffect } from './effects';
-import { combineMiddleware } from './middleware';
+import { combineDispatchInitialisers } from './middleware';
 
 /**
  * Creates a CustomElement class definition that uses the Hyperapp
@@ -25,14 +25,15 @@ import { combineMiddleware } from './middleware';
  *
  * @param {Object} config
  * @param {function} config.app Hyperapp's app() function.
- * @param {Object} config.init The initial state, or an Action that will return
- *      the initial state (and possibly an effect too).
+ * @param {Object|Hyperapp.Action} config.init Any valid input for the Hyperapp
+ *      `app()` function argument's `init` property, e.g. an object, an Action
+ *      function, or anything that can be returned by an Action function.
  * @param {Hyperapp.View} config.view Hyperapp view function that composes the
  *      component's DOM structure.
  * @param {Hyperapp.Subscriptions} [config.subscriptions] Hyperapp subscriptions
  *      function.
- * @param {Hyperapp.Middleware} [config.middleware] Hyperapp middleware function
- *      that wraps `dispatch`.
+ * @param {Hyperapp.DispatchFn} [config.dispatch] Hyperapp dispatch initialiser
+ *      function - akin to middleware that wraps `dispatch`.
  *
  * @param {Object[]} [config.exposedConfig] Array of config objects (optional):
  * @param {string} [config.exposedConfig[].attrName] HTML attribute name
@@ -68,11 +69,10 @@ import { combineMiddleware } from './middleware';
  */
 function generateClass({
   app,
-  state, // Deprecated. Use init instead.
   init,
   view,
   subscriptions,
-  middleware,
+  dispatch,
   exposedConfig = [],
   exposedMethods = {},
   useShadowDOM = true,
@@ -144,27 +144,21 @@ function generateClass({
       // it is given to start with.
       const span = root.appendChild(document.createElement('span'));
 
-      // Create a Hyperapp instance, which will render the view in the
-      // shadow DOM or a DocumentFragment.
-      if (state) {
-        init = state;
-        console.warn('Passing "state" is deprecated. Pass "init" instead');
-      }
-
-      // Configure our middleware.
+      // Configure our dispatch initialiser.
       const wrappedDispatch = this.wrapDispatch.bind(this);
-      if (typeof middleware === 'function') {
-        // Consumer supplied middleware. We need to wrap it in our own.
-        middleware = combineMiddleware(wrappedDispatch, middleware);
+      if (typeof dispatch === 'function') {
+        // Consumer supplied dispatch initialiser. Hyperapp can accept only a
+        // single dispatch initialiser, so we need to combine it with our own.
+        dispatch = combineDispatchInitialisers(wrappedDispatch, dispatch);
       } else {
-        middleware = wrappedDispatch;
+        dispatch = wrappedDispatch;
       }
 
       app({
         init,
         view,
         subscriptions,
-        middleware,
+        dispatch,
         node: span,
       });
     }
@@ -186,13 +180,17 @@ function generateClass({
      * Cleans up when called by the host (usually a browser).
      */
     disconnectedCallback() {
-      // TODO: use the value returned from app, which is a kill function.
-      // See https://github.com/jorgebucaran/hyperapp/pull/873
+      // Calling the dispatch function with no arguments is the official way to
+      // halt the app and free its relevant resources.
+      this._dispatch();
       this._dispatch = undefined;
+      this._fragment = undefined;
     }
 
     /**
-     * Returns a wrapped version the Hyperapp dispatch function.
+     * A dispatch initialiser that generates a wrapped version of Hyperapp's
+     * dispatch function.
+     *
      * As a result, all Actions and Effects that are dispatched are bound to the
      * CustomElement instance as `this`, and our internal `_state` property is
      * updated every time an Action changes the state.
@@ -229,41 +227,48 @@ function generateClass({
       };
 
       const newDispatch = (action, props) => {
-        // In order to bind the Actions to the component, we need to identify
-        // the actions in the various signatures of the dispatch function.
+        // In order to bind the Actions and Effecter functions to the component,
+        // we need to identify the action functions and Effecter functions in
+        // the various signatures of the dispatch function.
         // Also, we need to identify and capture changes of state.
-        // 1. Direct invocation, e.g. from an Effect:
-        //      dispatch(action, props)
-        // 2. Invocation with an Action tuple returned by an Action:
-        //      dispatch([action, props])
-        // 3. Invocation with a state and Effect tuples returned by an Action:
-        //      dispatch([state, [effect, props], [effect, props], ...])
-        // 4. Invocation with just a state:
-        //      dispatch(state)
-        //
-        // In cases 1 and 2, we need to bind the actions.
-        // In case 3 we need to capture the new state, and bind all the effects.
-        // In case 4, we just need to capture the state.
 
         let newState;
         if (typeof action === 'function') {
-          // Signature 1.
+          // The dispatch function is being called like this:
+          //   `dispatch(function, props?)`
+          // The function is an action function. We need to bind it.
           action = bindToThis(action);
         } else if (Array.isArray(action)) {
+          // The dispatch function is being called like this:
+          //   `dispatch([...])`
+          // If the first element of the array is either an action function or
+          // a new state value.
           if (typeof action[0] === 'function') {
-            // Signature 2: the first element of the array is an action.
+            // The first element of the array is an action function.
+            // We need to bind it.
             action[0] = bindToThis(action[0]);
           } else {
-            // Signature 3: the first element of the array is a new state.
+            // The first element of the array is a new state value.
+            // We need to capture it.
             newState = action[0];
-            // The remaining elements are Effect tuples.
+
+            // The remaining elements are Effect tuples, or bare Effecter
+            // functions. We need to bind the Effecter functions.
             for (let i = 1; i < action.length; i++) {
-              const tuple = action[i];
-              tuple[0] = bindToThis(tuple[0]);
+              const effect = action[i];
+              if (Array.isArray(effect)) {
+                // This element is an Effect tuple: [Effecter, props]
+                effect[0] = bindToThis(effect[0]);
+              } else {
+                // This element is a bare Effecter.
+                action[i] = bindToThis(effect);
+              }
             }
           }
         } else {
-          // Signature 4: it's just a new state (no Effects).
+          // The dispatch function is being called like this:
+          //   `dispatch(state)`
+          // We need to capture the state.
           newState = action;
         }
 
@@ -277,8 +282,6 @@ function generateClass({
         }
 
         // Now call the original dispatch.
-        // If the arguments match signature 3, this will just update the state
-        // in Hyperapp.
         dispatch(action, props);
 
         // Any modification of the state may need to be synced to the HTML
@@ -554,20 +557,4 @@ function generateClass({
   })();
 
   return CustomElement;
-}
-
-/**
- * Provided for backward compatibility. Use `generateClass()` followed by
- * `customElements.define()` instead.
- *
- * @deprecated
- * @param {string} name
- * @param {Object} cfg See `generateClass`
- */
-function define(name, cfg) {
-  console.warn('"define()" is depracated. Use generateClass instead.');
-
-  const cls = generateClass(cfg);
-
-  customElements.define(name, cls);
 }
