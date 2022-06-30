@@ -73,10 +73,11 @@ const MyCustomElement = generateClass({
   // A function that returns an array of Hyperapp subscriptions (optional).
   subscriptions: getSubscriptions,
 
-  // A middleware function (optional).
-  // N.B.: This library defines its own middleware. If middleware is supplied
-  // here, it will be wrapped by the library's own middleware.
-  middleware: middleware,
+  // A dispatch initialiser function (optional).
+  // N.B.: This library defines its own dispatch function. If a dispatch
+  // initialiser is supplied here, it will be combined with the library's own
+  // function.
+  dispatch: dispatch,
 
   // An array of Javascript properties and HTML attributes (they often come in
   // pairs) that can be used by a consuming app to configure the component.
