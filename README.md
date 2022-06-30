@@ -150,7 +150,7 @@ const MyExtendedElement = generateClass({
 
   subscriptions: getSubscriptions,
 
-  middleware: middleware,
+  dispatch: dispatch,
 
   // When extending a native element, specify here only the properties,
   // attributes and methods that are being *added* -- not those that the native
