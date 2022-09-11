@@ -1,7 +1,25 @@
-export { dispatchEventEffect, setOnEventListenerEffect };
+export {
+  dispatchEvent,
+  dispatchEventEffectRunner as dispatchEventEffect, // deprecated
+  setOnEventListenerEffectRunner,
+};
 
 /**
- * Hyperapp Effect that dispatches a CustomEvent for the consuming app to
+ * Returns a Hyperapp Effect tuple that dispatches a CustomEvent for the
+ * consuming app to consume.
+ *
+ * @param {string} eventType The name of the event. Corresponds to typeArg in
+ *    the CustomEvent constructor.
+ * @param {CustomEventInit} [eventInit] Settings for the custom event. Corres-
+ *    ponds to customEventInit in the CustomEvent constructor. Optional.
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent
+ */
+function dispatchEvent(eventType, eventInit) {
+  return [dispatchEventEffectRunner, { eventType, eventInit }];
+}
+
+/**
+ * Hyperapp Effecter that dispatches a CustomEvent for the consuming app to
  * consume.
  *
  * @param {function} _ The dispatch function passed by Hyperapp. Not used here.
@@ -12,7 +30,7 @@ export { dispatchEventEffect, setOnEventListenerEffect };
  *    esponds to customEventInit in the CustomEvent constructor.
  * @see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent
  */
-function dispatchEventEffect(_, { eventType, eventInit }) {
+function dispatchEventEffectRunner(_, { eventType, eventInit }) {
   const ev = new CustomEvent(eventType, eventInit);
   const cancel = !this.dispatchEvent(ev);
   // TODO: figure out how to supply useful functionality for cancelling default
@@ -20,7 +38,7 @@ function dispatchEventEffect(_, { eventType, eventInit }) {
 }
 
 /**
- * Hyperapp Effect for handling changes to a component's on<event> HTML
+ * Hyperapp Effect runner for handling changes to a component's on<event> HTML
  * attribute.
  * If the attribute value is being changed, registers the new value (must be a
  * function) as an event listener, and de-registers the old value's listener.
@@ -33,7 +51,7 @@ function dispatchEventEffect(_, { eventType, eventInit }) {
  *    on<event> attribute
  * @param {function|null} props.newVal The new value of the on<event> attribute.
  */
-function setOnEventListenerEffect(_, { eventType, oldVal, newVal }) {
+function setOnEventListenerEffectRunner(_, { eventType, oldVal, newVal }) {
   // Make the function an event listener.
   // But first, remove the current one if there is one.
   if (oldVal !== null) {

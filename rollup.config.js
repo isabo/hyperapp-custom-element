@@ -7,5 +7,5 @@ export default {
     format: 'es',
     sourcemap: true,
   },
-  plugins: [terser({ keep_fnames: /Effect$|^[A-Z]/ })],
+  plugins: [terser({ keep_fnames: /EffectRunner$|^[A-Z]/ })],
 };

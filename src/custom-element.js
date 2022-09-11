@@ -1,6 +1,6 @@
 export { generateClass };
 
-import { setOnEventListenerEffect } from './effects';
+import { setOnEventListenerEffectRunner } from './effects';
 import { combineDispatchInitialisers } from './middleware';
 
 /**
@@ -519,7 +519,7 @@ function generateClass({
 
       // Configure an effect that will register the handler as a listener.
       const effect = [
-        setOnEventListenerEffect,
+        setOnEventListenerEffectRunner,
         { eventType, oldVal: oldHandler, newVal: handler },
       ];
 
