@@ -141,8 +141,12 @@ function generateClass({
 
       // Before creating component's DOM, we need a trivial node that Hyperapp
       // can replace, such as <span>. Hyperapp always _replaces_ the node that
-      // it is given to start with.
-      const span = root.appendChild(document.createElement('span'));
+      // it is given to start with. However, if no `view` function is provided,
+      // i.e. the component has no visual UI, there is no root node, so it is
+      // unnecessary to create a `span` element.
+      const span = view
+        ? root.appendChild(document.createElement('span'))
+        : undefined;
 
       // Configure our dispatch initialiser.
       const wrappedDispatch = this.wrapDispatch.bind(this);
