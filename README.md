@@ -182,7 +182,7 @@ constructor](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/Custom
 `typeArg` and `customEventInit`.
 
 ```javascript
-import { dispatchEventEffect } from 'hyperapp-custom-element';
+import { dispatchEvent } from 'hyperapp-custom-element';
 
 function DoSomething(state, props) {
   const newState = {
