@@ -1,7 +1,7 @@
 import { h, text, app } from 'https://unpkg.com/hyperapp';
 import {
   generateClass,
-  dispatchEventEffect,
+  dispatchEvent,
 } from 'https://unpkg.com/hyperapp-custom-element';
 
 /**
@@ -98,14 +98,5 @@ function IncrementCounter(state, event) {
     count: state.count + state.incrementSize,
   };
 
-  return [
-    newState,
-    [
-      dispatchEventEffect,
-      {
-        eventType: 'Incremented',
-        eventInit: { bubbles: true },
-      },
-    ],
-  ];
+  return [newState, dispatchEvent('Incremented', { bubbles: true })];
 }
