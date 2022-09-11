@@ -116,7 +116,8 @@ const MyCustomElement = generateClass({
   ],
 
   // Methods to expose to the consuming app, and the corresponding Actions that
-  // will be invoked when the methods are called.
+  // will be invoked when the methods are called. Just as the underlying Action
+  // it dispatches, a method can be called with a single payload argument.
   exposedMethods: {
     doIt: DoSomething,
   },

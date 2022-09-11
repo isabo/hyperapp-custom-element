@@ -554,8 +554,8 @@ function generateClass({
    */
   (function addMethods() {
     for (const name in exposedMethods) {
-      CustomElement.prototype[name] = function () {
-        this.dispatchAction(exposedMethods[name]);
+      CustomElement.prototype[name] = function (payload) {
+        this.dispatchAction(exposedMethods[name], payload);
       };
     }
   })();
