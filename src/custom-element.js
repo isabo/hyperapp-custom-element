@@ -1,6 +1,6 @@
 export { generateClass };
 
-import { setOnEventListenerEffect } from './effects';
+import { setOnEventListenerEffectRunner } from './effects';
 import { combineDispatchInitialisers } from './middleware';
 
 /**
@@ -141,8 +141,12 @@ function generateClass({
 
       // Before creating component's DOM, we need a trivial node that Hyperapp
       // can replace, such as <span>. Hyperapp always _replaces_ the node that
-      // it is given to start with.
-      const span = root.appendChild(document.createElement('span'));
+      // it is given to start with. However, if no `view` function is provided,
+      // i.e. the component has no visual UI, there is no root node, so it is
+      // unnecessary to create a `span` element.
+      const span = view
+        ? root.appendChild(document.createElement('span'))
+        : undefined;
 
       // Configure our dispatch initialiser.
       const wrappedDispatch = this.wrapDispatch.bind(this);
@@ -515,7 +519,7 @@ function generateClass({
 
       // Configure an effect that will register the handler as a listener.
       const effect = [
-        setOnEventListenerEffect,
+        setOnEventListenerEffectRunner,
         { eventType, oldVal: oldHandler, newVal: handler },
       ];
 
@@ -550,8 +554,8 @@ function generateClass({
    */
   (function addMethods() {
     for (const name in exposedMethods) {
-      CustomElement.prototype[name] = function () {
-        this.dispatchAction(exposedMethods[name]);
+      CustomElement.prototype[name] = function (payload) {
+        this.dispatchAction(exposedMethods[name], payload);
       };
     }
   })();

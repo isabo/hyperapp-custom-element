@@ -1,2 +1,2 @@
 export { generateClass } from './custom-element';
-export { dispatchEventEffect } from './effects';
+export { dispatchEvent, dispatchEventEffect } from './effects';

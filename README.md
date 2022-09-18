@@ -116,7 +116,8 @@ const MyCustomElement = generateClass({
   ],
 
   // Methods to expose to the consuming app, and the corresponding Actions that
-  // will be invoked when the methods are called.
+  // will be invoked when the methods are called. Just as the underlying Action
+  // it dispatches, a method can be called with a single payload argument.
   exposedMethods: {
     doIt: DoSomething,
   },
@@ -174,14 +175,14 @@ customElements.define('extended-tag', MyExtendedElement, { extends: 'input' });
 ### Dispatching Events
 
 If your component has 'on\<event\>' attributes and/or dispatches events, you can
-use the convenient `dispatchEventEffect` effect that is exported by the module.
-This effect should receive a properties object with an `eventType` property and
-an `eventInit` property, which correspond to arguments of the [CustomEvent
+use the convenient `dispatchEvent` effect generator function that is exported by
+the module. This function should receive these two arguments: `eventType` and
+`eventInit`, which correspond to arguments of the [CustomEvent
 constructor](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent),
 `typeArg` and `customEventInit`.
 
 ```javascript
-import { dispatchEventEffect } from 'hyperapp-custom-element';
+import { dispatchEvent } from 'hyperapp-custom-element';
 
 function DoSomething(state, props) {
   const newState = {
@@ -189,13 +190,7 @@ function DoSomething(state, props) {
     ...props,
   };
 
-  const effect = [
-    dispatchEventEffect,
-    {
-      eventType: 'DidSomething',
-      eventInit: { bubbles: true },
-    },
-  ];
+  const effect = dispatchEvent('DidSomething', { detail: 3 });
 
   return [newState, effect];
 }
