@@ -1,6 +1,6 @@
 {
   "name": "hyperapp-custom-element",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Creates Hyperapp-driven WebComponents CustomElements",
   "type": "module",
   "main": "./dist/custom-element.min.js",
